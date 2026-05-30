@@ -275,8 +275,8 @@ The productive approach is a loop:
 flowchart TD
     P[Prompt] --> G[Generate]
     G --> R[Review]
-    R --> I[Identify specific problems]
-    I --> A[Agent fixes specific issues]
+    R --> I[Identify problems]
+    I --> A[Agent fixes]
     A --> G
 ```
 
@@ -391,11 +391,11 @@ Containment is not a single wall. It is a stack of defences, each catching what 
 
 ```mermaid
 flowchart BT
-    A["THE AGENT<br/>(Code runs here, mistakes stay here)"]
-    H["HARDWARE ISOLATION (VM + IOMMU passthrough)<br/>(Agent trapped in its own virtual machine)"]
-    S["SYSCALL INTERCEPTION (eBPF)<br/>(Kernel-level monitoring of every OS request)"]
-    R["RESOURCE BUDGETS (cgroups)<br/>(RAM, CPU, file descriptor limits)"]
-    T["THERMAL / POWER CIRCUIT BREAKERS<br/>(Physical hardware protection)"]
+    A["THE AGENT"]
+    H["HARDWARE ISOLATION (VM + IOMMU)"]
+    S["SYSCALL INTERCEPTION (eBPF)"]
+    R["RESOURCE BUDGETS (cgroups)"]
+    T["THERMAL / POWER CIRCUIT BREAKERS"]
     A --> H --> S --> R --> T
 ```
 
@@ -492,17 +492,17 @@ The enforcement pipeline has four layers, each catching what the others miss:
 
 ```mermaid
 flowchart TD
-    Code["Code written by agent"] --> Formatters
+    Code[Code] --> Formatters
     Formatters -->|PASS| Linters
-    Formatters -->|FAIL| R1[REJECTED<br/>Code looks wrong]
+    Formatters -->|FAIL| R1[REJECTED<br/>Formatting]
     Linters -->|PASS| Scanners
-    Linters -->|FAIL| R2[REJECTED<br/>Code has bad patterns]
+    Linters -->|FAIL| R2[REJECTED<br/>Bad patterns]
     Scanners -->|PASS| Secrets
-    Scanners -->|FAIL| R3[REJECTED<br/>Code has security issues]
+    Scanners -->|FAIL| R3[REJECTED<br/>Security flaws]
     Secrets -->|PASS| Tests
-    Secrets -->|FAIL| R4[REJECTED<br/>Secrets detected in code]
+    Secrets -->|FAIL| R4[REJECTED<br/>Secrets found]
     Tests -->|PASS| Approved[APPROVED]
-    Tests -->|FAIL| R5[REJECTED<br/>Code doesn't work correctly]
+    Tests -->|FAIL| R5[REJECTED<br/>Failing tests]
 ```
 
 **Formatters** ensure code looks consistent. They do not judge quality; they judge appearance. `ruff format` for Python, `shfmt` for Bash, `prettier` for YAML and JSON, `sqlfluff` for SQL. Consistent formatting is not vanity. It is the difference between a codebase that reads like a single author wrote it and one that reads like a committee argument. Agents produce code in whatever style they default to. Formatters erase that default and impose yours.
@@ -796,7 +796,7 @@ Think of a postal slot in a door. You can push letters out, but you cannot reach
 
 ```mermaid
 flowchart LR
-    A[AGENT SANDBOX<br/>No outbound access] -->|one-way| OF[OUTPUT FOLDER<br/>one-way]
+    A[AGENT SANDBOX] --> OF[OUTPUT FOLDER]
     OF --> HR[HUMAN REVIEWER]
     HR --> Production
 ```
@@ -872,14 +872,14 @@ A well-designed agentic system uses a **multi-model roster**:
 
 ```mermaid
 flowchart TD
-    O[ORCHESTRATOR<br/>Heavyweight reasoning model]
-    E[EXECUTOR<br/>Fast, local code-gen model]
+    O[ORCHESTRATOR<br/>Reasoning model]
+    E[EXECUTOR<br/>Code-gen model]
     CO[CODE OUTPUT]
-    Review{Orchestrator reviews<br/>N-version check}
+    Review{N-version check}
     Ship[Ship]
     Back[Back to Executor]
-    O -->|Plans architecture, decomposes problems, reviews output| E
-    E -->|Writes functions, runs tests, iterates on failures| CO
+    O -->|Plans, reviews| E
+    E -->|Writes code, runs tests| CO
     CO --> Review
     Review -->|PASS| Ship
     Review -->|FAIL| Back
@@ -1399,52 +1399,52 @@ The engineer who reads the agent's code, understands it, modifies it, and ships 
 
 ```mermaid
 flowchart TD
-    Q1{Is the task well-defined?<br/>Can you write the spec in 1 sentence?}
-    Q2{Is the task <10 lines of code?}
-    Q3{Is the task security-critical?<br/>auth, crypto, payments}
-    Q4{Are you learning this<br/>concept for the first time?}
-    Q5{Is the task deeply architectural?<br/>affects many files,<br/>requires structural trade-offs}
-    Q1 -->|No| A1[Define the problem first.<br/>Write a one-sentence spec.<br/>If you cannot, do not use an agent yet.]
+    Q1{Well-defined task?}
+    Q2{Under 10 lines?}
+    Q3{Security-critical?}
+    Q4{Learning the concept?}
+    Q5{Deeply architectural?}
+    Q1 -->|No| A1[Define the problem first]
     Q1 -->|Yes| Q2
-    Q2 -->|Yes| A2[Write it yourself.<br/>The prompting overhead exceeds<br/>the time to just type it.]
+    Q2 -->|Yes| A2[Write it yourself]
     Q2 -->|No| Q3
-    Q3 -->|Yes| A3[Write it yourself.<br/>You must understand every byte.]
+    Q3 -->|Yes| A3[Write it yourself]
     Q3 -->|No| Q4
-    Q4 -->|Yes| A4[Write it yourself.<br/>The struggle is the point.]
+    Q4 -->|Yes| A4[Write it yourself]
     Q4 -->|No| Q5
-    Q5 -->|Yes| A5[Use the agent for implementation<br/>after you write the architecture<br/>spec yourself.]
-    Q5 -->|No| A6[USE THE AGENT.<br/>Include relevant files in context.<br/>Specify constraints explicitly.]
+    Q5 -->|Yes| A5[Write architecture,<br/>let agent implement]
+    Q5 -->|No| A6[USE THE AGENT]
 ```
 
 ### Decision Tree 2: Iterate or Regenerate?
 
 ```mermaid
 flowchart TD
-    Q1{Which pass are you on?}
-    Q1 -->|Pass 1| A1[Iterate. Fix specifics.<br/>error handling, edge cases.<br/>Regenerating wastes context.]
-    Q1 -->|Pass 2| A2[Iterate. Fix naming,<br/>structure, logging.]
-    Q1 -->|Pass 3| A3[Iterate. Add tests.<br/>Run mutation testing.]
-    Q1 -->|Pass 4| A4[Iterate. Polish.<br/>Verify enforcement pipeline.]
-    Q1 -->|Pass 5+| Q2{Is the code materially<br/>improving each pass?}
-    Q2 -->|Yes| A5[Keep iterating.<br/>Each pass is cheaper<br/>than the last.]
-    Q2 -->|No| Q3{Identify the root cause}
-    Q3 -->|Was the spec wrong?| A6[Rewrite the prompt.<br/>Start fresh.]
-    Q3 -->|Does the agent lack<br/>codebase context?| A7[Add relevant files to context.<br/>Start fresh.]
-    Q3 -->|Is the task beyond<br/>the agent's capability?| A8[Write it yourself.<br/>Some tasks need<br/>human judgement.]
+    Q1{Which pass?}
+    Q1 -->|1| A1[Iterate: errors, edges]
+    Q1 -->|2| A2[Iterate: naming, structure]
+    Q1 -->|3| A3[Iterate: tests]
+    Q1 -->|4| A4[Iterate: polish]
+    Q1 -->|5+| Q2{Improving each pass?}
+    Q2 -->|Yes| A5[Keep iterating]
+    Q2 -->|No| Q3{Root cause?}
+    Q3 -->|Wrong spec| A6[Rewrite prompt, fresh start]
+    Q3 -->|Missing context| A7[Add context, fresh start]
+    Q3 -->|Beyond capability| A8[Write it yourself]
 ```
 
 ### Decision Tree 3: Which Verification Technique?
 
 ```mermaid
 flowchart TD
-    Q1{What are you trying to verify?}
-    Q1 -->|Basic correctness| A1[Unit tests<br/>pytest, jest, etc.]
-    Q1 -->|Test quality| A2[Mutation testing<br/>mutmut, pytest-mutagen]
-    Q1 -->|Edge cases| A3[Property-based fuzzing<br/>hypothesis, fast-check]
-    Q1 -->|Network resilience| A4[Synthetic impairment<br/>Toxiproxy]
-    Q1 -->|Security flaws| A5[Scanners<br/>semgrep, trivy, codeql]
-    Q1 -->|Concurrency / distributed| A6[Formal verification<br/>TLA+]
-    Q1 -->|Reproducibility| A7[Pinned environments<br/>Nix, Docker digests]
+    Q1{What to verify?}
+    Q1 -->|Correctness| A1[Unit tests]
+    Q1 -->|Test quality| A2[Mutation testing]
+    Q1 -->|Edge cases| A3[Property-based fuzzing]
+    Q1 -->|Resilience| A4[Synthetic impairment]
+    Q1 -->|Security| A5[Scanners]
+    Q1 -->|Concurrency| A6[Formal verification]
+    Q1 -->|Reproducibility| A7[Pinned environments]
 ```
 
 ---
