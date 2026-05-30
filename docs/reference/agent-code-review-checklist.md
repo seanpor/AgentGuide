@@ -43,3 +43,26 @@ Agents catch exceptions but do nothing useful with them.
 - [ ] No bare `except:` or `except: pass` blocks.
 - [ ] Default values are not returned when an error should be raised.
 - [ ] Logging is at the correct level (error, not debug, for failures).
+
+## 6. Behavioural Vulnerabilities
+
+The code works on the happy path but fails under adversarial conditions.
+
+- [ ] Does a permission check run on every code path, or only one?
+- [ ] Does the code assume a previous step always happened?
+- [ ] Does it trust client-provided state over server-derived values?
+- [ ] Does a retry mechanism replay sensitive actions without revalidation?
+- [ ] Have you mentally executed the code as an attacker would?
+
+## 7. Dependency Provenance
+
+Agents can introduce new or typosquatted dependencies.
+
+- [ ] Has every new dependency been verified against the project allowlist?
+- [ ] Is the package name checked for typosquatting (one-character differences from known libraries)?
+- [ ] Has the project SBOM been updated?
+- [ ] Have new dependencies been scanned for known CVEs?
+
+## 8. Human Ownership
+
+- [ ] Does this code have a designated human owner who can explain it and fix it?

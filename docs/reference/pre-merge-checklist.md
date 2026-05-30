@@ -11,7 +11,9 @@ Before any agent-generated code is merged, verify every item:
 - [ ] **Logging is present at key decision points.**
 - [ ] **The code follows the project's naming conventions and architectural patterns.**
 - [ ] **No hallucinated APIs** — every external function call has been verified against documentation.
-- [ ] **No unnecessary dependencies added.**
+- [ ] **No unnecessary dependencies added** — each verified against typosquatting; project SBOM updated; new dependencies scanned for CVEs.
 - [ ] **The diff has been reviewed for unnecessary verbosity.**
+- [ ] **Reviewed for behavioural vulnerabilities** — auth checks run on every code path; no client-trusted state; retries do not replay sensitive actions.
+- [ ] **Designated human owner exists** — someone who can explain the code and is accountable for it.
 
 If any item fails, the code does not merge. No exceptions.
