@@ -40,22 +40,31 @@
   - [Syscall Interception](#syscall-interception)
   - [Resource Budgets](#resource-budgets)
   - [Thermal and Power Circuit Breakers](#thermal-and-power-circuit-breakers)
+  - [State Hashing Circuit Breakers](#state-hashing-circuit-breakers)
 - [VII. The Enforcement Pipeline](#vii-the-enforcement-pipeline)
   - [The Gate That Never Negotiates](#the-gate-that-never-negotiates)
   - [The Five Lines of Defence](#the-five-lines-of-defence)
+  - [Semantic Validation Firewalls](#semantic-validation-firewalls)
+  - [TDD Gating](#tdd-gating)
+  - [AI-Powered DevSecOps Gates](#ai-powered-devsecops-gates)
   - [The Immutable Makefile](#the-immutable-makefile)
+  - [Repository Hardening](#repository-hardening)
   - [The AGENTS.md File](#the-agentsmd-file)
   - [Environmental Invariants](#environmental-invariants)
+  - [DSL Output Constraints](#dsl-output-constraints)
 - [VIII. Advanced Verification](#viii-advanced-verification)
   - [Beyond the Happy Path](#beyond-the-happy-path)
   - [Mutation Testing](#mutation-testing)
   - [Property-Based Fuzzing](#property-based-fuzzing)
   - [Formal Verification](#formal-verification)
   - [Synthetic Network Impairment](#synthetic-network-impairment)
+  - [Burn-In Soak Test](#burn-in-soak-test)
   - [Reproducible Environments](#reproducible-environments)
+  - [Transactional Test State](#transactional-test-state)
 - [IX. Security and State Management](#ix-security-and-state-management)
   - [The Agent Will Leak Your Secrets](#the-agent-will-leak-your-secrets)
   - [Prompt Injection](#prompt-injection)
+  - [Middleware Interception](#middleware-interception)
   - [Write-Once Storage](#write-once-storage)
   - [Software Data Diodes](#software-data-diodes)
   - [Dynamic Taint Analysis](#dynamic-taint-analysis)
@@ -480,6 +489,12 @@ This is not paranoia. It is the same engineering discipline that puts fuses in e
 
 > **Key takeaway:** Never rely on the agent to follow rules. Build an environment where breaking the rules is physically impossible. Start with Docker containers and resource limits today; add syscall interception and hardware isolation as your systems grow.
 
+### State Hashing Circuit Breakers
+
+Thermal and power breakers protect the hardware. State hashing protects the iteration loop. Every time the agent proposes a patch, the pipeline hashes the entire set of changes. If the exact same hash appears three times in a row, the circuit breaker trips. The loop pauses. The system drops into manual intervention: the human opens the sandbox, reads the agent's work, and either corrects the prompt or takes over the task.
+
+This catches the case where the agent is stuck in a local optimum: it keeps proposing the same fix, the same tests keep failing, and it re-proposes the same code. Without a state hash breaker, the agent would iterate indefinitely, burning tokens and time. With one, the loop fails fast and the human intervenes early.
+
 ---
 
 ## VII. The Enforcement Pipeline
@@ -518,6 +533,30 @@ flowchart TD
 **Secret scanners** catch credentials committed to the codebase. `gitleaks` scans the entire working tree for API keys, private keys, tokens, passwords, and other secrets. While scanners like `trivy` may check for accidentally leaked secrets as a secondary function, dedicated secret scanners have higher signal-to-noise ratios and run much faster. They are the last line of defence before a single paste exposes your entire infrastructure. Run them at every commit: once in a pre-commit hook, and once in CI. If either finds a high-confidence match, the pipeline rejects the code before it reaches a reviewer.
 
 **Tests** catch functional regressions and measure code health. `pytest` (or your framework of choice) runs unit and integration tests with configurable coverage thresholds. Mutation testing with tools like `mutmut` verifies that your tests actually stress the code, not just that they pass. A clean pipeline means the code is formatted, free of bad patterns, secure, secret-free, and functionally correct. Tests close the loop: they are the gate that makes sure the code does what it is supposed to do.
+
+### Semantic Validation Firewalls
+
+Formatters check syntax. Linters check style. Semantic validation firewalls check meaning. They sit between the agent's output and the Makefile pipeline as strict schema validators that parse the generated payload and reject malformed structures before they reach disk.
+
+A firewall validates the intent and shape of data against a precise specification. If a required field is missing, a type is wrong, or a constraint is violated, the firewall bounces the output back to the agent with a specific error message. No human review needed. No formal pipeline execution wasted.
+
+This is not a linter. A linter checks that code follows conventions. A semantic firewall checks that the output is structurally valid for its intended purpose. For a database migration, the firewall verifies that every referenced table exists. For a Docker Compose file, it checks that every service name in a depends-on clause has a corresponding service definition. For a Terraform plan, it validates that resource references form a directed acyclic graph.
+
+### TDD Gating
+
+A strict test-driven development (TDD) gate enforces the order of operations programmatically. The pipeline requires the agent to write the test file first. It registers a failed test execution before the agent is granted access to modify the main source code. This proves that the test actually evaluates the feature's absence.
+
+Without this gate, an agent can write a test, immediately write the implementation to pass it, and declare both done. The test appears to validate the feature, but it was written in concert with the implementation. It tests what the code does, not what it should do. The TDD gate breaks this collusion by requiring a red-green cycle: the test must fail against the existing codebase before the agent can touch the implementation.
+
+The mechanism is simple. The pipeline checks the order of file modifications. If a source file was modified before its corresponding test file, the pipeline rejects the commit.
+
+### AI-Powered DevSecOps Gates
+
+Traditional scanners match known patterns. They catch hardcoded API keys, SQL injection strings, and vulnerable dependency versions. They miss novel attack vectors, subtle prompt injections buried in code comments, and unsafe variable interpolations that do not match any known signature.
+
+A DevSecOps gate uses a secondary, lightweight local model as a dedicated security auditor. This model has no access to the codebase context. It does not write code. It reads the diff and scans for hardcoded secrets, prompt injections, and unsafe interpolations. If it flags a finding, the pipeline rejects the commit before human review.
+
+The separation matters. The primary agent is optimised for code generation. The auditor model is optimised for suspicion. It has no stake in the code being correct. Its only job is to find something wrong. Because it is a separate model, a compromise of the primary agent does not affect the auditor's judgement.
 
 ### The Immutable Makefile
 
@@ -561,6 +600,23 @@ build: enforce
 
 The critical detail: the agent must not be able to modify this Makefile. It is the law, not a suggestion. If the agent could weaken its own enforcement pipeline, the entire system collapses. The Makefile is read-only. The CI configuration is read-only. The agent operates within the rules; it does not write them.
 
+### Repository Hardening
+
+The Makefile is read-only. The AGENTS.md file is read-only. The CI configuration is read-only. But if the agent can open a pull request that modifies these files, the constraint is only as strong as the reviewer's attention.
+
+Repository hardening uses the `CODEOWNERS` file to assign mandatory human reviewers to the files that govern the agent's behaviour. Any pull request that touches `.github/`, `AGENTS.md`, or `Makefile` is automatically blocked until a designated engineer approves it. The agent cannot weaken its own guardrails by sneak-editing the rules.
+
+A `CODEOWNERS` entry looks like this:
+
+```github
+# Protect agent governance files
+AGENTS.md         @security-lead
+Makefile          @platform-lead
+.github/          @platform-lead
+```
+
+This is a repository-level constraint, not an environment-level one. It applies regardless of what the agent does inside its sandbox. It is the last lock on the toolbox.
+
 ### The AGENTS.md File
 
 To save context window space and reduce confusion, do not give the agent massive README files. Give it a terse `AGENTS.md` that acts as a router, telling it exactly what the boundaries are and where to find more information only when it needs it. This is called progressive disclosure.
@@ -602,6 +658,14 @@ Beyond the Makefile, the environment itself enforces certain standards:
 **Data sovereignty.** API endpoints, package mirrors, and telemetry must resolve to approved infrastructure. Network firewalls block routing to unapproved regions. This serves compliance, latency, and reliability. The agent cannot accidentally introduce dependencies on infrastructure outside your control.
 
 > **Key takeaway:** `make enforce` is the gate that never negotiates. Build it early, make it comprehensive, and never let the agent modify it. The five layers — formatters, linters, scanners, secrets, and tests — each catch what the others miss.
+
+### DSL Output Constraints
+
+The most constrained agent is the safest agent. One way to constrain output is to restrict the agent to generating structured data (JSON or YAML) rather than raw code. Deterministic scripts then parse the structured payload and produce the actual execution artefacts: Bash scripts, SQL migrations, or configuration files.
+
+This adds a layer of indirection. It also eliminates entire categories of bug. A JSON schema validator catches structural errors before they reach the execution environment. The agent cannot produce syntactically invalid SQL because it does not produce SQL. It produces a data structure that a tested script transforms into SQL, and that transformation is verified independently.
+
+This approach works best for repetitive, well-defined tasks: database migrations, infrastructure provisioning, configuration file generation. For exploratory coding, it is too slow. Use it where the cost of a malformed output exceeds the overhead of the indirection.
 
 ---
 
@@ -733,6 +797,14 @@ This tells Toxiproxy to add 2 seconds of latency (with 500ms of random variation
 
 If you only test against a healthy network, you are testing a fiction. The agent's code will work in the sandbox and fail in production. Synthetic impairment closes this gap by making the sandbox as hostile as reality.
 
+### Burn-In Soak Test
+
+Standard tests run for seconds. The Burn-In soak test runs for minutes or hours, bombarding the sandbox with synthetic traffic using tools such as `wrk` or `k6`. It catches slow memory leaks, connection pool exhaustion, and unoptimised queries that unit tests miss because they never run long enough to expose them.
+
+The agent produces code. The pipeline runs unit tests. The pipeline runs mutation tests. If all pass, the Burn-In phase begins: the sandbox is flooded with realistic traffic patterns at production-like scale. Memory usage, response latency, and error rates are monitored throughout. If any metric degrades monotonically over the test period, the pipeline rejects the commit.
+
+The Burn-In phase is asynchronous. The agent does not wait for it. It moves to the next task while the soak test runs in the background. If the test fails, the agent receives the results and addresses them on the next iteration.
+
 ### Reproducible Environments
 
 > **Practical note:** Implement this today, at least at the level of pinned dependencies (`requirements.txt` with exact versions like `requests==2.31.0`, not `requests>=2.0`; `package-lock.json` for Node). Nix is the gold standard for teams that need byte-level reproducibility.
@@ -744,6 +816,14 @@ Tools like Nix solve this by making environments reproducible down to the crypto
 This eliminates an entire category of bugs: the ones caused by environmental drift. The agent cannot accidentally depend on a library version that exists in development but not production, because the two environments are the same environment.
 
 > **Key takeaway:** Standard tests are not enough. Mutation testing proves your tests are real. Fuzzing finds the edge cases no human would write. Formal verification proves correctness for systems that must never fail. Network impairment proves your code survives the real world. Start with mutation testing: it is the highest return on investment.
+
+### Transactional Test State
+
+When testing database migrations, the standard approach is to run the migration, run the tests, then destroy and rebuild the container. This is slow. For databases that support transactional DDL (Data Definition Language: SQL that creates, alters, and drops schema objects), such as ClickHouse's Atomic engine, there is a faster approach: wrap the migration in a transaction and roll it back.
+
+The migration runs inside a database transaction. The tests run against the migrated schema. When the tests complete, the transaction rolls back, restoring the schema to its pre-test state. No container rebuild. No schema dump and restore. The migration is tested against a clean database, and the database is returned to its original state in milliseconds.
+
+This is only possible with databases that support transactional DDL. Most traditional databases, including PostgreSQL and MySQL, do not support rolling back schema changes. For those that do, transactional test state eliminates an entire class of testing overhead and makes migration testing something you do on every commit, not just on release day.
 
 ---
 
@@ -781,6 +861,14 @@ This is not theoretical. It has happened in production systems. The mitigations 
 4. **Monitor for exfiltration.** If the agent's output contains patterns that look like API keys, tokens, or credentials, flag it before it reaches the user. Tools like `detect-secrets` can scan output as well as code.
 
 5. **Assume the agent will be compromised.** Design your system so that a compromised agent cannot cause irreversible damage. This is the principle of the security architecture: the agent operates within constraints that limit what it can do, regardless of what it tries to do.
+
+### Middleware Interception
+
+Prompt injection mitigations at the system prompt level are speed bumps. A determined attacker will find a way around them. Middleware interception places a proxy layer directly between the agent framework and the local inference endpoint, sanitising every prompt and response in real time.
+
+The proxy scans the agent's prompt for known malicious patterns before the prompt reaches the model. It scans the model's response for poisoned context, harmful code generation, or data exfiltration attempts before the response reaches the agent's logic loop. If either side triggers a rule, the proxy blocks the message, logs the event, and pauses the agent for human review.
+
+This is the network firewall for agent prompts. The agent never directly communicates with the model. The proxy sits in the middle, inspecting every byte. It is an independent layer: compromised prompts do not reach the model, and compromised responses do not reach the agent.
 
 ### Write-Once Storage
 

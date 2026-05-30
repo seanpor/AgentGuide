@@ -66,6 +66,9 @@ fuzzer
 GCM
 getLogger
 gitleaks
+hash
+hashes
+hashing
 github
 gpg
 GPT
@@ -90,6 +93,7 @@ ini
 int
 io
 IOMMU
+k6
 isn
 iteratively
 JSON
@@ -202,6 +206,9 @@ VM
 VMs
 vuln
 YAML
+validator
+validators
+validates
 yaml
 yamllint
 yml
@@ -242,3 +249,12 @@ scrypt
 SHA1
 typosquatted
 typosquatting
+ai
+ClickHouse
+CODEOWNERS
+DDL
+DevSecOps
+devsecops
+dsl
+tdd
+wrk
