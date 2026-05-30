@@ -2,6 +2,8 @@
 
 A guide to writing production code with AI agents, with a containerised lint toolchain that enforces UK English and markdown formatting. All tool versions are pinned for reproducibility, and automated version drift detection alerts when updates are available.
 
+**Start here: [writing-production-code.md](writing-production-code.md) — the full guide.**
+
 ## Quick Start
 
 ```bash
