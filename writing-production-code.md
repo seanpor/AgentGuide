@@ -650,7 +650,7 @@ Notice what this file does not contain: tutorials, explanations of basic concept
 
 Beyond the Makefile, the environment itself enforces certain standards:
 
-**Editor standardisation.** `EDITOR=vi` is set in the environment. This is not about preference. It ensures that when the agent, or a human intervening in the sandbox, encounters an interactive tool — a git rebase, a crash dump review, or a merge conflict — the interface is predictable and scriptable. Consistency in the toolchain reduces the surface area for confusion.
+**Filesystem immutability.** Certain directories are mounted as read-only in the agent's sandbox: `/etc` and `/usr` to prevent system-config tampering, and the project's `.github/` directory to prevent the agent from altering its own governance. If the agent tries to write to these paths, the filesystem layer refuses. The agent cannot accidentally or deliberately weaken its constraints from within the sandbox.
 
 **Deprecated command elimination.** Certain commands are banned not because they fail, but because they fail silently or create technical debt. The `apt-key` command, for instance, is deprecated and insecure. The environment enforces the modern alternative (`curl <url> | sudo gpg --dearmor -o <path>`) and scanners are configured to reject any code that uses the old form. The agent learns the correct pattern because the incorrect one is not merely discouraged — it is impossible to ship.
 
