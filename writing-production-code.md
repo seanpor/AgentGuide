@@ -628,7 +628,7 @@ Here is a real example:
 **Region:** EU-only infrastructure endpoints. No outbound traffic to US/UK permitted.
 
 ## 1. Execution Invariants
-- **Editors:** You are running in a strict `vi` environment.
+- **Filesystem:** The sandbox mounts `/etc`, `/usr`, and `.github/` as read-only. The agent cannot modify system configuration or its own governance files.
 - **System Config:** When adding apt keys in Bash, strictly use:
   `curl <url> | sudo gpg --dearmor -o <path>`. Do not use `apt-key`.
 - **Spelling:** Use UK English exclusively across all documentation
