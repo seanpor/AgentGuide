@@ -61,7 +61,7 @@ lint-spell: $(STAMP_FILE)
 
 Add `.docker-build-stamp` to `.gitignore`:
 
-```
+```text
 # Build artefacts
 *.log
 .docker-build-stamp

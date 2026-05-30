@@ -29,7 +29,7 @@ Create `scripts/check-versions.sh` that:
 
 The script should output something like:
 
-```
+```text
 Checking tool versions...
 
 markdownlint-cli2:

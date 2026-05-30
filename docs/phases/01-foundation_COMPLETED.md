@@ -18,7 +18,7 @@ A repo without a `.gitignore` will eventually commit Docker build caches, IDE co
 
 Add a `.gitignore` file at the repo root with these entries:
 
-```
+```text
 # Docker
 .docker/
 

@@ -19,21 +19,21 @@ A repository that:
 
 ## Phases
 
-| Phase | Title | Status | Dependencies | Est. Time |
-|---|---|---|---|---|
-| 1 | Foundation | Not started | None | 15-20 min |
-| 2 | Version Pinning | Not started | Phase 1 | 20-30 min |
-| 3 | Version Drift Detection | Not started | Phase 2 | 30-45 min |
-| 4 | Build Optimisation | Not started | Phase 1 | 15-20 min |
-| 5 | Agent Guardrails | Not started | Phases 1, 2, 3 | 20-30 min |
-| 6 | Continuous Integration | Not started | Phases 1, 2, 3 | 30-45 min |
-| 7 | Documentation Completion | Not started | All previous phases | 30-45 min |
+| Phase | Title                    | Status      | Dependencies        | Est. Time   |
+| ----- | ------------------------ | ----------- | ------------------- | ----------- |
+| 1     | Foundation               | Not started | None                | 15-20 min   |
+| 2     | Version Pinning          | Not started | Phase 1             | 20-30 min   |
+| 3     | Version Drift Detection  | Not started | Phase 2             | 30-45 min   |
+| 4     | Build Optimisation       | Not started | Phase 1             | 15-20 min   |
+| 5     | Agent Guardrails         | Not started | Phases 1, 2, 3      | 20-30 min   |
+| 6     | Continuous Integration   | Not started | Phases 1, 2, 3      | 30-45 min   |
+| 7     | Documentation Completion | Not started | All previous phases | 30-45 min   |
 
 **Total estimated time:** 2.5-4 hours
 
 ## Dependency Graph
 
-```
+```text
 Phase 1 (Foundation)
   ├─> Phase 2 (Version Pinning)
   │     └─> Phase 3 (Version Drift Detection)

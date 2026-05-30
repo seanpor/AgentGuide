@@ -47,20 +47,20 @@ make check-versions
 
 A table of all Makefile targets:
 
-| Command | Description |
-|---|---|
-| `make lint` | Run all lint checks (markdown + spelling) |
-| `make lint-md` | Run markdown formatting checks |
-| `make lint-spell` | Run UK English spelling checks |
-| `make check-versions` | Check for tool version drift |
-| `make build` | Build the Docker lint image |
-| `make clean` | Remove the Docker image and build stamp |
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `make lint`          | Run all lint checks (markdown + spelling)      |
+| `make lint-md`       | Run markdown formatting checks                 |
+| `make lint-spell`    | Run UK English spelling checks                 |
+| `make check-versions`| Check for tool version drift                   |
+| `make build`         | Build the Docker lint image                    |
+| `make clean`         | Remove the Docker image and build stamp        |
 
 #### Project Structure
 
 Explain what each file does:
 
-```
+```text
 AgentGuide/
 ├── writing-production-code.md    # The main guide
 ├── Makefile                      # Lint targets
@@ -106,23 +106,23 @@ See `.github/workflows/lint.yml` for the full configuration.
 
 #### Troubleshooting
 
-**"make lint fails with 'Cannot connect to the Docker daemon'"**
+##### "make lint fails with 'Cannot connect to the Docker daemon'"
 
 Docker is not running. Start Docker Desktop or the Docker daemon.
 
-**"make lint fails with 'markdownlint-cli2: command not found'"**
+##### "make lint fails with 'markdownlint-cli2: command not found'"
 
 The Docker image is not built. Run `make build` first.
 
-**"make lint-spell flags a word as misspelled"**
+##### "make lint-spell flags a word as misspelled"
 
-If it's a technical term, add it to `.hunspell_en_GB`. If it's a US spelling, change it to UK English (e.g., "color" → "colour").
+If it is a technical term, add it to `.hunspell_en_GB`. If it is a US spelling, change it to UK English (e.g., "color" to "colour").
 
-**"make check-versions reports drift"**
+##### "make check-versions reports drift"
 
 See "Updating Tool Versions" above.
 
-**"CI fails on my pull request"**
+##### "CI fails on my pull request"
 
 Run `make lint` locally and fix the errors. The CI runs the same checks.
 

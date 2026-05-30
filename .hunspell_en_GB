@@ -9,6 +9,7 @@ personal_ws-1.1 en 500
 5ms
 8x2p
 AES256
+AgentGuide
 Agentic
 agentic
 API
@@ -22,14 +23,19 @@ bool
 CD
 checkmake
 ci
+cli2
 CLI
 clickhouse
+codeql
+color
 Config
+codespell
 config
 Copilot
 counterintuitive
 cov
 CPU
+cd
 cgroups
 CVE
 CVEs
@@ -95,6 +101,7 @@ marshmallow
 matchActions
 md
 MemoryMax
+microservice
 middleware
 mutex
 mutmut
