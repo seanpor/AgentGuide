@@ -5,7 +5,7 @@
 
 ## 1. Execution Invariants
 
-- **Lint:** You must run `make lint` before considering any task complete. All checks must pass.
+- **Lint:** You must run `make enforce` before considering any task complete. All checks must pass.
 - **Spelling:** Use UK English in all documentation and comments. Run `make lint-spell` to verify.
 - **Formatting:** Markdown files must pass `make lint-md`. Code blocks must have language specifiers.
 
@@ -21,7 +21,7 @@ You must not modify these files without explicit human approval:
 
 ## 3. CI/CD Gates
 
-- Every pull request must pass `make lint`.
+- Every pull request must pass `make enforce`.
 - Every pull request must pass `make check-versions` (version drift warnings do not block merge, but must be documented).
 - No merge without human code review.
 
@@ -42,7 +42,7 @@ Read these files only when modifying their specific domains:
 
 ## 6. Testing
 
-- After any change, run `make lint` and verify it passes.
+- After any change, run `make enforce` and verify it passes.
 - After modifying the Dockerfile, run `make clean && make build && make lint`.
 - After adding new technical terms to documentation, add them to `.hunspell_en_GB`.
 

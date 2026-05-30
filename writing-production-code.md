@@ -42,7 +42,7 @@
   - [Thermal and Power Circuit Breakers](#thermal-and-power-circuit-breakers)
 - [VII. The Enforcement Pipeline](#vii-the-enforcement-pipeline)
   - [The Gate That Never Negotiates](#the-gate-that-never-negotiates)
-  - [The Four Lines of Defence](#the-four-lines-of-defence)
+  - [The Five Lines of Defence](#the-five-lines-of-defence)
   - [The Immutable Makefile](#the-immutable-makefile)
   - [The AGENTS.md File](#the-agentsmd-file)
   - [Environmental Invariants](#environmental-invariants)
@@ -100,6 +100,10 @@
   - [The Fortress Is the Engineering](#the-fortress-is-the-engineering)
   - [The Engineer You Are Becoming](#the-engineer-you-are-becoming)
   - [The Agent as Accelerated Apprenticeship](#the-agent-as-accelerated-apprenticeship)
+- [Appendix A: Glossary of Terms](#appendix-a-glossary-of-terms)
+- [Appendix B: Decision Trees](#appendix-b-decision-trees)
+- [Appendix C: Prompt Templates](#appendix-c-prompt-templates)
+- [Appendix D: Suggested Reading Path](#appendix-d-suggested-reading-path-for-junior-engineers)
 
 ---
 
@@ -486,9 +490,9 @@ Every production codebase needs a quality gate: checks code must pass before it 
 
 The tool for this is `make`. Not because it is fashionable (it was released in 1976), but because it is stable, language-agnostic, and behaves identically on a laptop and a CI server. The agent must run `make enforce` before its work is considered complete. If any check fails, the code is rejected. There is no override. There is no "I'll fix it later." The gate does not negotiate.
 
-### The Four Lines of Defence
+### The Five Lines of Defence
 
-The enforcement pipeline has four layers, each catching what the others miss:
+The enforcement pipeline has five layers, each catching what the others miss:
 
 ```mermaid
 flowchart TD
@@ -512,6 +516,8 @@ flowchart TD
 **Scanners** catch security issues in code logic. `semgrep` scans for SQL injection, hardcoded credentials, and unsafe deserialisation. `trivy` finds known vulnerabilities in dependencies. These tools find the things that linters miss: the dependency with a known CVE, the function that passes user input directly to a shell command, the cryptographic primitive that is dangerously outdated.
 
 **Secret scanners** catch credentials committed to the codebase. `gitleaks` scans the entire working tree for API keys, private keys, tokens, passwords, and other secrets. While scanners like `trivy` may check for accidentally leaked secrets as a secondary function, dedicated secret scanners have higher signal-to-noise ratios and run much faster. They are the last line of defence before a single paste exposes your entire infrastructure. Run them at every commit: once in a pre-commit hook, and once in CI. If either finds a high-confidence match, the pipeline rejects the code before it reaches a reviewer.
+
+**Tests** catch functional regressions and measure code health. `pytest` (or your framework of choice) runs unit and integration tests with configurable coverage thresholds. Mutation testing with tools like `mutmut` verifies that your tests actually stress the code, not just that they pass. A clean pipeline means the code is formatted, free of bad patterns, secure, secret-free, and functionally correct. Tests close the loop: they are the gate that makes sure the code does what it is supposed to do.
 
 ### The Immutable Makefile
 
@@ -595,7 +601,7 @@ Beyond the Makefile, the environment itself enforces certain standards:
 
 **Data sovereignty.** API endpoints, package mirrors, and telemetry must resolve to approved infrastructure. Network firewalls block routing to unapproved regions. This serves compliance, latency, and reliability. The agent cannot accidentally introduce dependencies on infrastructure outside your control.
 
-> **Key takeaway:** `make enforce` is the gate that never negotiates. Build it early, make it comprehensive, and never let the agent modify it. The three layers — formatters, linters, scanners — each catch what the others miss.
+> **Key takeaway:** `make enforce` is the gate that never negotiates. Build it early, make it comprehensive, and never let the agent modify it. The five layers — formatters, linters, scanners, secrets, and tests — each catch what the others miss.
 
 ---
 
@@ -875,7 +881,7 @@ flowchart TD
     O[ORCHESTRATOR<br/>Reasoning model]
     E[EXECUTOR<br/>Code-gen model]
     CO[CODE OUTPUT]
-    Review{N-version check}
+    Review{Orchestrator:<br/>N-version check}
     Ship[Ship]
     Back[Back to Executor]
     O -->|Plans, reviews| E
@@ -1046,9 +1052,11 @@ Before merging agent-generated code:
 6. Error handling is present on every external call and every user input.
 7. Logging is present at key decision points.
 8. The code follows the project's naming conventions and architectural patterns.
-9. No hallucinated APIs — every external function call has been verified.
-10. No unnecessary dependencies added.
+9. No hallucinated APIs — every external function call has been verified against documentation.
+10. No unnecessary dependencies added — each verified against typosquatting; project SBOM updated; new dependencies scanned for CVEs.
 11. The diff has been reviewed for unnecessary verbosity.
+12. Reviewed for behavioural vulnerabilities — auth checks run on every code path; no client-trusted state; retries do not replay sensitive actions.
+13. Designated human owner exists — someone who can explain the code and is accountable for it.
 
 If any item fails, the code does not merge. No exceptions.
 
@@ -1517,7 +1525,7 @@ Write tests for `{file_path}` in `{test_file_path}`.
 - Run mutation testing and confirm score > 80%.
 ```
 
-### Template 5: Secure Code Generation
+### Template 4: Secure Code Generation
 
 ```text
 Generate {code description} at `{file_path}` that meets these security
@@ -1544,7 +1552,7 @@ requirements:
 - Run `{lint_command}` and confirm all checks pass.
 ```
 
-### Template 4: Code Review Request
+### Template 5: Code Review Request
 
 ```text
 Review the code at `{file_path}` for agent-specific failure modes.

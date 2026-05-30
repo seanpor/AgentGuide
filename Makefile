@@ -1,4 +1,4 @@
-.PHONY: default lint lint-md lint-spell build clean check-versions
+.PHONY: default enforce lint lint-md lint-spell build clean check-versions
 
 IMAGE_NAME := agentguide-lint
 IMAGE_TAG := latest
@@ -18,6 +18,8 @@ build: $(STAMP_FILE)
 $(STAMP_FILE): Dockerfile
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	touch $(STAMP_FILE)
+
+enforce: lint
 
 lint: lint-md lint-spell lint-secrets
 

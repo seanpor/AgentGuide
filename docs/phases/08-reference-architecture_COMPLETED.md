@@ -56,20 +56,20 @@ The TOC must link to every major section (I–XV) and every named subsection. Fo
 | --- | --- |
 | I | From Autocomplete to Autonomy, How to Read This Guide |
 | II | The Problem Precedes the Prompt, The Cost of Code You Don't Understand, Specification as Prompting, When Not to Use an Agent |
-| III | Correctness Readability and Maintainability, Naming and Structure, Error Handling, Logging and Observability, Dependency Discipline |
-| IV | Refine Don't Regenerate, The Loop in Practice, When to Abandon the Loop, The Economics of Iteration |
-| V | Automation Bias, Sunk Cost Fallacy, Learned Helplessness, The Confidence Illusion |
+| III | Correctness Readability and Maintainability, Naming and Structure, Error Handling, Logging and Observability, Dependency Discipline, Agentic Debt |
+| IV | Refine Don't Regenerate, The Loop in Practice, When to Abandon the Loop, The Economics of Iteration, Estimating Agent Effort |
+| V | The Hazards of Working with Machines That Never Say I Don't Know, Automation Bias, Sunk Cost Fallacy, Learned Helplessness, The Confidence Illusion |
 | VI | Why Polite Requests Fail, The Layered Defence Model, Hardware Isolation, Syscall Interception, Resource Budgets, Thermal and Power Circuit Breakers |
-| VII | The Gate That Never Negotiates, The Three Lines of Defence, The Immutable Makefile, The AGENTS.md File, Environmental Invariants |
+| VII | The Gate That Never Negotiates, The Five Lines of Defence, The Immutable Makefile, The AGENTS.md File, Environmental Invariants |
 | VIII | Beyond the Happy Path, Mutation Testing, Property-Based Fuzzing, Formal Verification, Synthetic Network Impairment, Reproducible Environments |
-| IX | The Agent Will Leak Your Secrets, Prompt Injection, Write-Once Storage, Software Data Diodes, Dynamic Taint Analysis, Secrets Management, The Dead Mans Switch |
+| IX | The Agent Will Leak Your Secrets, Prompt Injection, Write-Once Storage, Software Data Diodes, Dynamic Taint Analysis, Secrets Management, The Dead Mans Switch, What Not to Paste |
 | X | The Right Model for the Right Job, N-Version Programming, Semantic Entropy Gating, The Economics of Tokens, Context Management |
 | XI | The Amnesia Problem, AST-Aware Diffing, RAG-Augmented Error Feedback |
-| XII | When the Circuit Breaker Trips, Reading the Telemetry, Dropping into the Sandbox, Code Review, The Pre-Merge Checklist |
+| XII | When the Circuit Breaker Trips, Reading the Telemetry, Dropping into the Sandbox, Debugging Code You Did Not Write, Code Review, The Ownership Paradox, The Pre-Merge Checklist |
 | XIII | The Task, Step One Understand Before Prompting, Step Two Write the Prompt, Step Three Review the Agents Output, Step Four Review the Tests, Step Five Mutation Testing, Step Six Enforcement, Step Seven Commit and Merge, What Just Happened |
 | XIV | Version Control as Communication, Documentation, Continuous Integration, Knowing When to Stop |
 | XV | The Tool Not the Crutch, The Fortress Is the Engineering, The Engineer You Are Becoming |
-| Appendices | Glossary of Terms, Decision Trees, Prompt Templates, Suggested Reading Path, Pre-Merge Checklist |
+| Appendices | Glossary of Terms, Decision Trees, Prompt Templates, Suggested Reading Path |
 
 ### 2. Add a Glossary Appendix
 
