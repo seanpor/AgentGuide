@@ -50,6 +50,7 @@ db
 dearmor
 DeepSeek
 deserialisation
+dir
 dict
 difftastic
 Docker
@@ -64,6 +65,7 @@ FileNotFoundError
 fuzzer
 GCM
 getLogger
+gitleaks
 github
 gpg
 GPT
@@ -231,6 +233,7 @@ R1
 R2
 R3
 R4
+R5
 RC4
 requuests
 TD

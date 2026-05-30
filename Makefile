@@ -19,7 +19,11 @@ $(STAMP_FILE): Dockerfile
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	touch $(STAMP_FILE)
 
-lint: lint-md lint-spell
+lint: lint-md lint-spell lint-secrets
+
+lint-secrets: $(STAMP_FILE)
+	docker run --rm -v $(PWD):/workspace $(IMAGE_NAME):$(IMAGE_TAG) \
+		-c "gitleaks dir . -v"
 
 lint-md: $(STAMP_FILE)
 	docker run --rm -v $(PWD):/workspace $(IMAGE_NAME):$(IMAGE_TAG) \

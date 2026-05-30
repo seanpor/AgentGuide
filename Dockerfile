@@ -24,6 +24,14 @@ RUN npm install -g markdownlint-cli2@0.22.1
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir codespell==2.4.2
 
+# gitleaks v8.30.1 (2026-05-30) for secret scanning
+# sha256 from gitleaks/gitleaks release checksums
+RUN curl -sSfL -o /tmp/gitleaks.tar.gz \
+        https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz && \
+    echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks && \
+    rm /tmp/gitleaks.tar.gz
+
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /workspace

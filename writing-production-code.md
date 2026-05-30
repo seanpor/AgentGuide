@@ -42,7 +42,7 @@
   - [Thermal and Power Circuit Breakers](#thermal-and-power-circuit-breakers)
 - [VII. The Enforcement Pipeline](#vii-the-enforcement-pipeline)
   - [The Gate That Never Negotiates](#the-gate-that-never-negotiates)
-  - [The Three Lines of Defence](#the-three-lines-of-defence)
+  - [The Four Lines of Defence](#the-four-lines-of-defence)
   - [The Immutable Makefile](#the-immutable-makefile)
   - [The AGENTS.md File](#the-agentsmd-file)
   - [Environmental Invariants](#environmental-invariants)
@@ -486,9 +486,9 @@ Every production codebase needs a quality gate: checks code must pass before it 
 
 The tool for this is `make`. Not because it is fashionable (it was released in 1976), but because it is stable, language-agnostic, and behaves identically on a laptop and a CI server. The agent must run `make enforce` before its work is considered complete. If any check fails, the code is rejected. There is no override. There is no "I'll fix it later." The gate does not negotiate.
 
-### The Three Lines of Defence
+### The Four Lines of Defence
 
-The enforcement pipeline has three layers, each catching what the others miss:
+The enforcement pipeline has four layers, each catching what the others miss:
 
 ```mermaid
 flowchart TD
@@ -497,26 +497,30 @@ flowchart TD
     Formatters -->|FAIL| R1[REJECTED<br/>Code looks wrong]
     Linters -->|PASS| Scanners
     Linters -->|FAIL| R2[REJECTED<br/>Code has bad patterns]
-    Scanners -->|PASS| Tests
+    Scanners -->|PASS| Secrets
     Scanners -->|FAIL| R3[REJECTED<br/>Code has security issues]
+    Secrets -->|PASS| Tests
+    Secrets -->|FAIL| R4[REJECTED<br/>Secrets detected in code]
     Tests -->|PASS| Approved[APPROVED]
-    Tests -->|FAIL| R4[REJECTED<br/>Code doesn't work correctly]
+    Tests -->|FAIL| R5[REJECTED<br/>Code doesn't work correctly]
 ```
 
 **Formatters** ensure code looks consistent. They do not judge quality; they judge appearance. `ruff format` for Python, `shfmt` for Bash, `prettier` for YAML and JSON, `sqlfluff` for SQL. Consistent formatting is not vanity. It is the difference between a codebase that reads like a single author wrote it and one that reads like a committee argument. Agents produce code in whatever style they default to. Formatters erase that default and impose yours.
 
 **Linters** catch logical errors and bad practices. `ruff check` for Python (unused imports, unreachable code, deprecated patterns), `shellcheck` for Bash (dangerous commands, quoting errors, portability issues), `hadolint` for Dockerfiles, `yamllint` for configuration files. Linters find bugs that tests miss: not because the code crashes, but because it does something subtly wrong that will cause a problem three months from now.
 
-**Scanners** catch security issues. `semgrep` scans for security flaws in logic: SQL injection, hardcoded credentials, and unsafe deserialisation. `trivy` scans for accidentally leaked secrets and known vulnerabilities in dependencies. These tools find the things that linters and tests are blind to: the API key left in a config file, the dependency with a known CVE, the function that passes user input directly to a shell command.
+**Scanners** catch security issues in code logic. `semgrep` scans for SQL injection, hardcoded credentials, and unsafe deserialisation. `trivy` finds known vulnerabilities in dependencies. These tools find the things that linters miss: the dependency with a known CVE, the function that passes user input directly to a shell command, the cryptographic primitive that is dangerously outdated.
+
+**Secret scanners** catch credentials committed to the codebase. `gitleaks` scans the entire working tree for API keys, private keys, tokens, passwords, and other secrets. While scanners like `trivy` may check for accidentally leaked secrets as a secondary function, dedicated secret scanners have higher signal-to-noise ratios and run much faster. They are the last line of defence before a single paste exposes your entire infrastructure. Run them at every commit: once in a pre-commit hook, and once in CI. If either finds a high-confidence match, the pipeline rejects the code before it reaches a reviewer.
 
 ### The Immutable Makefile
 
 A representative enforcement pipeline looks like this:
 
 ```makefile
-.PHONY: enforce format-check lint scan build test
+.PHONY: enforce format-check lint scan secrets test build
 
-enforce: format-check lint scan test
+enforce: format-check lint scan secrets test
 
 format-check:
 	ruff format --check .
@@ -537,6 +541,9 @@ lint:
 scan:
 	semgrep ci --config=auto
 	trivy fs --scanners secret,vuln .
+
+secrets:
+	gitleaks dir . -v
 
 test:
 	pytest tests/ --cov=my_project --cov-fail-under=90
