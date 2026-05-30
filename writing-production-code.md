@@ -8,6 +8,105 @@
 
 ---
 
+## Table of Contents
+
+- [I. Introduction](#i-introduction)
+  - [From Autocomplete to Autonomy](#from-autocomplete-to-autonomy)
+  - [How to Read This Guide](#how-to-read-this-guide)
+- [II. Thinking Before Prompting](#ii-thinking-before-prompting)
+  - [The Problem Precedes the Prompt](#the-problem-precedes-the-prompt)
+  - [The Cost of Code You Don't Understand](#the-cost-of-code-you-dont-understand)
+  - [Specification as Prompting](#specification-as-prompting)
+  - [When Not to Use an Agent](#when-not-to-use-an-agent)
+- [III. The Anatomy of Production Code](#iii-the-anatomy-of-production-code)
+  - [Correctness, Readability, Maintainability](#correctness-readability-maintainability)
+  - [Naming and Structure](#naming-and-structure)
+  - [Error Handling](#error-handling)
+  - [Logging and Observability](#logging-and-observability)
+  - [Dependency Discipline](#dependency-discipline)
+  - [Agentic Debt](#agentic-debt)
+- [IV. The Iteration Loop](#iv-the-iteration-loop)
+  - [Refine, Don't Regenerate](#refine-dont-regenerate)
+  - [The Loop in Practice](#the-loop-in-practice)
+  - [When to Abandon the Loop](#when-to-abandon-the-loop)
+  - [The Economics of Iteration](#the-economics-of-iteration)
+  - [Estimating Agent Effort](#estimating-agent-effort)
+- [V. Cognitive Traps](#v-cognitive-traps)
+  - [The Hazards of Working with Machines That Never Say "I Don't Know"](#the-hazards-of-working-with-machines-that-never-say-i-dont-know)
+  - [Automation Bias](#automation-bias)
+  - [Sunk Cost Fallacy](#sunk-cost-fallacy)
+  - [Learned Helplessness](#learned-helplessness)
+  - [The Confidence Illusion](#the-confidence-illusion)
+- [VI. Containing the Blast Radius](#vi-containing-the-blast-radius)
+  - [Why Polite Requests Fail](#why-polite-requests-fail)
+  - [The Layered Defence Model](#the-layered-defence-model)
+  - [Hardware Isolation](#hardware-isolation)
+  - [Syscall Interception](#syscall-interception)
+  - [Resource Budgets](#resource-budgets)
+  - [Thermal and Power Circuit Breakers](#thermal-and-power-circuit-breakers)
+- [VII. The Enforcement Pipeline](#vii-the-enforcement-pipeline)
+  - [The Gate That Never Negotiates](#the-gate-that-never-negotiates)
+  - [The Three Lines of Defence](#the-three-lines-of-defence)
+  - [The Immutable Makefile](#the-immutable-makefile)
+  - [The AGENTS.md File](#the-agentsmd-file)
+  - [Environmental Invariants](#environmental-invariants)
+- [VIII. Advanced Verification](#viii-advanced-verification)
+  - [Beyond the Happy Path](#beyond-the-happy-path)
+  - [Mutation Testing](#mutation-testing)
+  - [Property-Based Fuzzing](#property-based-fuzzing)
+  - [Formal Verification](#formal-verification)
+  - [Synthetic Network Impairment](#synthetic-network-impairment)
+  - [Reproducible Environments](#reproducible-environments)
+- [IX. Security and State Management](#ix-security-and-state-management)
+  - [The Agent Will Leak Your Secrets](#the-agent-will-leak-your-secrets)
+  - [Prompt Injection](#prompt-injection)
+  - [Write-Once Storage](#write-once-storage)
+  - [Software Data Diodes](#software-data-diodes)
+  - [Dynamic Taint Analysis](#dynamic-taint-analysis)
+  - [Secrets Management](#secrets-management)
+  - [The Dead Man's Switch](#the-dead-mans-switch)
+  - [What Not to Paste](#what-not-to-paste)
+- [X. Cognitive Routing and Economics](#x-cognitive-routing-and-economics)
+  - [The Right Model for the Right Job](#the-right-model-for-the-right-job)
+  - [N-Version Programming](#n-version-programming)
+  - [Semantic Entropy Gating](#semantic-entropy-gating)
+  - [The Economics of Tokens](#the-economics-of-tokens)
+  - [Context Management](#context-management)
+- [XI. Telemetry and Memory](#xi-telemetry-and-memory)
+  - [The Amnesia Problem](#the-amnesia-problem)
+  - [AST-Aware Diffing](#ast-aware-diffing)
+  - [RAG-Augmented Error Feedback](#rag-augmented-error-feedback)
+- [XII. The Human-Agent Handoff](#xii-the-human-agent-handoff)
+  - [When the Circuit Breaker Trips](#when-the-circuit-breaker-trips)
+  - [Reading the Telemetry](#reading-the-telemetry)
+  - [Dropping into the Sandbox](#dropping-into-the-sandbox)
+  - [Debugging Code You Did Not Write](#debugging-code-you-did-not-write)
+  - [Code Review](#code-review)
+  - [The Ownership Paradox](#the-ownership-paradox)
+  - [The Pre-Merge Checklist](#the-pre-merge-checklist)
+- [XIII. A Worked Example](#xiii-a-worked-example)
+  - [The Task](#the-task)
+  - [Step One: Understand Before Prompting](#step-one-understand-before-prompting)
+  - [Step Two: Write the Prompt](#step-two-write-the-prompt)
+  - [Step Three: Review the Agent's Output](#step-three-review-the-agents-output)
+  - [Step Four: Review the Tests](#step-four-review-the-tests)
+  - [Step Five: Mutation Testing](#step-five-mutation-testing)
+  - [Step Six: Enforcement](#step-six-enforcement)
+  - [Step Seven: Commit and Merge](#step-seven-commit-and-merge)
+  - [What Just Happened](#what-just-happened)
+- [XIV. The Professional Habits](#xiv-the-professional-habits)
+  - [Version Control as Communication](#version-control-as-communication)
+  - [Documentation](#documentation)
+  - [Continuous Integration](#continuous-integration)
+  - [Knowing When to Stop](#knowing-when-to-stop)
+- [XV. Conclusion](#xv-conclusion)
+  - [The Tool, Not the Crutch](#the-tool-not-the-crutch)
+  - [The Fortress Is the Engineering](#the-fortress-is-the-engineering)
+  - [The Engineer You Are Becoming](#the-engineer-you-are-becoming)
+  - [The Agent as Accelerated Apprenticeship](#the-agent-as-accelerated-apprenticeship)
+
+---
+
 ## I. Introduction
 
 ### From Autocomplete to Autonomy
@@ -28,7 +127,7 @@ The thesis is simple: **production-quality code is not about writing better prom
 
 ### How to Read This Guide
 
-This document moves from the conceptual to the concrete. It begins with how to think before you prompt and how to work with an agent iteratively. It then covers the cognitive traps that catch engineers new to agentic workflows, the anatomy of production code itself, and the infrastructure of containment, enforcement, verification, and security that makes autonomous agents safe. It includes a full worked example — a task taken from prompt to merge — and closes with the professional habits that tie everything together.
+This document moves from the conceptual to the concrete. It begins with thinking before prompting and working with an agent iteratively. It then covers the cognitive traps that catch engineers new to agentic workflows, the anatomy of production code itself, and the infrastructure of containment, enforcement, verification, and security that makes autonomous agents safe. It includes a full worked example — a task taken from prompt to merge — and closes with the professional habits that tie everything together.
 
 Read it in order the first time. Return to specific sections as reference thereafter.
 
@@ -40,25 +139,25 @@ Some sections describe infrastructure you may not configure yourself — hardwar
 
 ### The Problem Precedes the Prompt
 
-The most common mistake engineers make with AI agents is not a prompting error. It is a thinking error. They open the chat window before they have understood the problem.
+The most common mistake engineers make with AI agents is not a prompting error but a thinking error. They open the chat window before they have understood the problem.
 
-An agent will always produce *something*. Give it a vague instruction and it will produce a vague solution — confidently, fluently, and wrong. The quality of what comes out is bounded by the quality of what goes in. This is true of every engineering tool ever made, but agents obscure it because they never refuse to answer.
+An agent will always produce *something*. A vague instruction produces a vague solution — confident, fluent, and wrong. The quality of output is bounded by the quality of input. This holds for every engineering tool ever made, but agents obscure it because they never refuse to answer.
 
-Before you type a single prompt, do three things:
+Three things belong upstream of any prompt:
 
 **First, read the existing codebase.** Not the documentation — the code. Documentation lies; code does not. Understand the naming conventions, the error-handling patterns, the directory structure, the testing approach. An agent that generates code inconsistent with the surrounding codebase has produced code that is, by definition, not production-ready. It will not survive code review. It will not integrate cleanly. It will create more work than it saves.
 
-**Second, define the problem in one sentence.** Not "I need to build the auth system." Rather: "I need a middleware function that validates JWT tokens on incoming HTTP requests and returns a 401 if the token is missing, expired, or malformed." The difference between these two descriptions is the difference between an agent that produces a sprawling, unfocused scaffold and one that produces a tight, testable function.
+**Second, define the problem in one sentence.** Not "I need to build the auth system." Rather: "I need a middleware function that validates JWT tokens on incoming HTTP requests and returns a 401 if the token is missing, expired, or malformed." The difference is between a sprawling scaffold and a tight, testable function.
 
 **Third, identify the constraints.** What language version? What framework? What existing utilities must the code integrate with? What are the performance requirements? What must it *not* do? Constraints are not limitations — they are specifications. An agent operating under clear constraints produces better code than one operating in open space.
 
 ### The Cost of Code You Don't Understand
 
-Here is a rule that will serve you for your entire career: **never ship code you cannot explain.**
+A single rule suffices: **never ship code you cannot explain.**
 
 When an agent generates a solution, you must be able to read every line and articulate why it is there. Not "the agent put it there." Not "it seems to work." Why. If you cannot explain a line, you cannot debug it at 3 a.m. when it breaks. You cannot defend it in code review. You cannot modify it when requirements change. You have not written code; you have accepted a delivery.
 
-This does not mean you must write everything from scratch. It means you must read what the agent produces with the same scrutiny you would apply to a pull request from a colleague you don't entirely trust. Ask the agent to explain its choices. Ask it to simplify. Ask it to remove anything unnecessary. If a line survives that process and you still cannot explain it, delete it and write something you can.
+This does not mean writing from scratch. It means reading every agent line with the scrutiny you would apply to a pull request from a colleague you don't entirely trust. Ask the agent to explain its choices. Ask it to simplify. Ask it to remove anything unnecessary. If a line survives that process and you still cannot explain it, delete it and write something you can.
 
 The agent will not mind. It has no ego. Use that.
 
@@ -74,7 +173,7 @@ A good prompt:
 
 > "Write a Python function `normalise_user_record(user: dict) -> dict` that takes a raw user dictionary from our PostgreSQL `users` table (schema in `docs/database_schema.md`) and returns a cleaned version with: all string fields stripped and lowercased, `created_at` converted from Unix timestamp to ISO 8601, and any keys not in the schema removed. Raise `ValueError` if `user_id` is missing. Include type hints. Follow the patterns in `src/transforms/` for style."
 
-The second prompt is longer. It will produce dramatically better code. The time you spend writing it is returned to you tenfold in reduced debugging, fewer rewrites, and code that actually fits your codebase.
+The second prompt is longer. It will produce dramatically better code. The time spent writing it is returned tenfold in reduced debugging, fewer rewrites, and code that fits your codebase.
 
 ### When Not to Use an Agent
 
@@ -108,11 +207,11 @@ Names are the single highest-leverage decision in software engineering. A well-n
 
 Agents tend toward generic names: `process_data`, `handle_request`, `get_info`. Push back. Demand specificity: `normalise_user_record`, `validate_jwt_token`, `fetch_active_subscriptions`. The name should tell the reader what the function does and, implicitly, what it does not do.
 
-Structure follows naming. A function should do one thing. If you find yourself writing "and" when describing what a function does, it is doing too much. Agents will happily produce 80-line functions that do five things. Break them apart. A function that validates input, queries a database, transforms the result, logs the operation, and returns a response should be five functions, each named for its single responsibility.
+Structure follows naming. A function should do one thing. A function described with "and" is doing too much. Agents will happily produce 80-line functions that do five things. Break them apart. A function that validates input, queries a database, transforms the result, logs the operation, and returns a response should be five functions, each named for its single responsibility.
 
 ### Error Handling
 
-Here is how you tell a professional from an amateur: look at their error handling.
+Professionals are distinguished from amateurs by their error handling.
 
 Amateur code assumes the happy path. It calls APIs without checking response codes. It reads files without catching `FileNotFoundError`. It parses JSON without handling malformed input. When something goes wrong — and something always goes wrong — it crashes with an unhelpful traceback or, worse, silently produces wrong results.
 
@@ -149,6 +248,18 @@ Before accepting any agent-suggested dependency, ask three questions:
 3. **Is the library worth the weight?** A 50MB dependency to save three lines of code is not a trade-off. A well-maintained library that solves a genuinely hard problem (cryptography, date arithmetic across time zones, complex SQL generation) is worth its weight.
 
 Instruct the agent explicitly: "Use only libraries already present in `requirements.txt`" or "Do not add new dependencies." If the agent insists a new library is necessary, make it justify the choice — and verify the justification.
+
+### Agentic Debt
+
+Agents accumulate a characteristic type of technical debt. It has a recognisable signature.
+
+**Over-abstraction** is the most common. An agent will extract a single-use class, create a factory for a function called once, or introduce an interface with exactly one implementation. The code looks well-structured. It is not. It is just more code to maintain.
+
+**Inconsistent style between sessions** is the second. An agent working on a fresh context window does not remember the conventions it established last week. It will use snake_case in one file and camelCase in another, mix error-handling patterns, and alternate between logging frameworks. This is not malice — it is amnesia. The solution is the enforcement pipeline defined in Section VII: formatters, linters, and scanners catch inconsistency regardless of the agent's memory.
+
+**Unused code** is the third. Agents produce imports they never reference, functions they never call, and variables they never read. They do this because generating unused code is statistically cheaper than analysing whether it will be used. The linter catches imports. Code review catches the rest.
+
+The diagnostic question for agentic debt is simple: would a human have written this? If the answer is no, the agent has produced something that works but is not yet production code.
 
 ---
 
@@ -221,13 +332,25 @@ Practical rules:
 - **Use smaller, faster models for iteration.** The heavyweight model for architecture and planning; the fast model for line-level fixes. (See Section X.)
 - **Set a cost ceiling per task.** If a single task costs more than an hour of your time, you are either prompting poorly or the task is not suited to an agent.
 
+### Estimating Agent Effort
+
+How many passes will a task need? The answer is embedded in the prompt.
+
+A one-sentence prompt produces a first draft that will be wrong in ways the prompt was too vague to prevent. Expect three or four iterations to close the gap between what you asked for and what you wanted.
+
+A paragraph-length prompt — specifying inputs, outputs, constraints, and edge cases — typically requires one or two iterations. The agent has less ambiguity to resolve.
+
+A page-length specification, written with the rigour of a ticket ready for a human engineer, often produces acceptable code on the first pass. The iteration happened in the writing, not in the chat.
+
+Use this as a budgeting heuristic. If you do not know which kind of prompt you are writing, you are writing the first kind. Stop. Spend five more minutes on the specification. It will save fifteen minutes of iteration.
+
 ---
 
 ## V. Cognitive Traps
 
 ### The Hazards of Working with Machines That Never Say "I Don't Know"
 
-Agents are persuasive. They write fluently, they format beautifully, and they never express doubt. This combination is dangerous for anyone who has not yet developed the instincts to spot bad code on sight. Three traps, in particular, catch engineers repeatedly.
+Agents never express doubt. Their fluency and formatting disguise this. This combination is dangerous for anyone who trusts formatting as a signal of correctness. Three traps, in particular, catch engineers repeatedly.
 
 ### Automation Bias
 
@@ -267,7 +390,7 @@ The only reliable signal is verification. Check the documentation. Run the code.
 
 ### Why Polite Requests Fail
 
-The instinct, when first working with autonomous agents, is to add instructions like "do not delete the database" or "do not access files outside the project directory." These are prompt-based guardrails. They do not work.
+The natural instinct is to add instructions like "do not delete the database" or "do not access files outside the project directory." They do not work.
 
 AI models are probabilistic text generators. They do not understand rules the way humans do. They understand patterns. Under normal conditions, an agent will follow your instructions. Under edge cases — long sessions, complex contexts, adversarial inputs, or simply bad luck — it will violate them with the same cheerful confidence it brings to everything else. Prompt-based guardrails are speed bumps, not walls.
 
@@ -757,6 +880,18 @@ This is the dead man's switch: the system defaults to *not deploying*, and requi
 
 > **Key takeaway:** Assume the agent will be compromised. Design every layer so that a compromised agent cannot cause irreversible damage. Short-lived credentials, one-way data flow, write-once storage, and a human dead man's switch — together, these ensure that the worst-case scenario is still survivable.
 
+### What Not to Paste
+
+The security architecture in the preceding sections assumes a motivated attacker. There is a more mundane threat: the code itself.
+
+Every prompt sent to a cloud-based agent traverses a network, is processed on a remote server, and may be stored for training or monitoring. This includes the code you paste — which may contain proprietary logic, database schemas, API keys hidden in configuration examples, or personally identifiable information in test data.
+
+The rule is: if you would not commit it to a public repository, do not paste it into a prompt.
+
+For codebases that contain sensitive logic, the options are limited. Run a local model that never leaves your hardware. Or sanitise prompts by replacing real values with placeholders: `SELECT * FROM users WHERE id = {user_id}` rather than `SELECT * FROM users WHERE id = 837291`. The agent does not need real data to produce correct code.
+
+Several incidents have been reported of proprietary source code appearing in training data for subsequent model releases. The model does not know it is your code. It will happily reproduce it for another user's prompt.
+
 ---
 
 ## X. Cognitive Routing and Economics
@@ -911,6 +1046,18 @@ Open the offending file. Read it. Understand what the agent was trying to do. Ma
 
 The principle is: **intervene minimally and surgically.** The agent is doing most of the work. Your job is to unblock it when it cannot unblock itself, not to take over the task entirely.
 
+### Debugging Code You Did Not Write
+
+Section II established a rule: never ship code you cannot explain. But what happens when the code is broken and you do not understand it? This is the debugging scenario unique to agentic development.
+
+**First, ask the agent to explain its own code.** Paste the failing function and the error trace into a fresh prompt: "Explain what each line of this function does and why it is failing." The agent that wrote the code can usually diagnose it faster than a human reading from scratch.
+
+**Second, add logging.** Ask the agent to instrument every branch of the failing function with a log statement capturing the relevant variable values at that point. Run the code. Read the logs. The path the code actually took will differ from the path you assumed.
+
+**Third, simplify.** If the function is longer than twenty lines, ask the agent to split it into smaller functions, each named for its single responsibility. Then read each one. The process of decomposition produces understanding. By the time the function is split, you will know which piece is wrong.
+
+If all three steps fail, the agent has produced code beyond its own ability to diagnose. Delete the function and write it yourself, testing each line as you go. The time is not wasted: you now understand the problem well enough to solve it.
+
 ### Code Review
 
 Every line of agent-generated code must be reviewed with the same scrutiny you would apply to a pull request from a colleague. More, in fact, because agents have failure modes that humans do not.
@@ -926,6 +1073,16 @@ Common agent failure modes:
 - **Copy-paste patterns.** The agent will duplicate code rather than abstract it. If you see the same logic in three places, extract it into a function. The agent will not do this on its own unless prompted.
 
 - **Silent failures.** The agent will catch exceptions and do nothing with them. It will return default values when it should raise errors. It will log at debug level when it should log at error level. Every error path must be examined.
+
+### The Ownership Paradox
+
+When an agent writes most of a system, the question of who understands it becomes uncomfortable. No one wrote the code in the traditional sense. No one read every line. No one carries the mental model of the system in their head.
+
+This is the ownership paradox: code that no human can explain is not an asset. It is deferred liability.
+
+The mitigation is not to read every line of every agent output — that is impractical at scale. It is to ensure that every significant architectural decision is documented, every module has a designated human owner, and every pre-merge checklist includes the question: "Could I explain this module to a colleague without opening the file?" If the answer is no, the agent has not done its job. It has merely produced output.
+
+The agent does not reduce the need for human understanding. It shifts it: from line-level recall to architectural comprehension. That is a harder skill, not an easier one.
 
 ### The Pre-Merge Checklist
 
@@ -1201,3 +1358,315 @@ Every line of agent-generated code you review sharpens your ability to read code
 The agent is not replacing you. It is accelerating you. The question is not whether you can produce code with an agent — anyone can. The question is whether you can produce *production* code with an agent. Code that is correct, readable, maintainable, secure, tested, and observable. Code that ships. Code that survives contact with reality.
 
 This guide has given you the framework. The rest is practice. Open your editor. Read the codebase. Write the specification. Build the fortress. And ship something you are proud of.
+
+### The Agent as Accelerated Apprenticeship
+
+Learned helplessness is the risk of agentic development. But there is another side.
+
+An agent that generates working code lets you read more architectures than you could build. It lets you experiment with patterns you have not mastered. It lets you see how an experienced system would approach a problem and learn from the shape of the solution rather than struggling through the syntax.
+
+The condition is that you must read what it produces. The agent is not a replacement for learning. It is an accelerator for learning — if you treat every output as a tutorial.
+
+The engineer who reads the agent's code, understands it, modifies it, and ships it will learn faster than the engineer who writes every line by hand. Not because the agent saves time, but because the agent provides more examples to learn from. The question is not whether you use the agent. It is whether you pay attention.
+
+---
+
+## Appendix A: Glossary of Terms
+
+**Agent** — An AI model that can autonomously write, run, debug, and refactor code without human intervention at each step. *(Section I)*
+
+**AST (Abstract Syntax Tree)** — A representation of code as a tree of logical structures (functions, loops, conditionals) rather than a sequence of text lines. *(Section XI)*
+
+**Automation bias** — The tendency to trust a machine's output because it comes from a machine, skipping the critical verification step. *(Section V)*
+
+**CVE (Common Vulnerabilities and Exposures)** — A publicly disclosed security flaw with a unique identifier (e.g., CVE-2024-1234). *(Section III)*
+
+**cgroups (control groups)** — A Linux kernel feature that imposes hard limits on resource consumption (RAM, CPU, file descriptors) for a process. *(Section VI)*
+
+**Circuit breaker** — A pattern that stops retrying a failed operation once a threshold is exceeded, preventing cascading failures. *(Section VIII)*
+
+**Data diode** — A one-way data flow mechanism that physically prevents data from moving in the reverse direction. *(Section IX)*
+
+**Dead man's switch** — A mechanism that defaults to "do nothing" unless a human actively approves within a time window. *(Section IX)*
+
+**Dynamic taint analysis** — Runtime tracking that marks sensitive data as "tainted" and intercepts it before it reaches dangerous sinks (logs, network sockets, API responses). *(Section IX)*
+
+**eBPF (extended Berkeley Packet Filter)** — A Linux technology that lets you run small, safe programs inside the kernel to monitor and intercept system calls. *(Section VI)*
+
+**Executor model** — A smaller, faster AI model optimised for code generation, testing, and iteration under the supervision of an orchestrator. *(Section X)*
+
+**Exponential backoff** — A retry strategy that waits progressively longer between attempts (1s, 2s, 4s, 8s...) to avoid overwhelming a failing service. *(Section VIII)*
+
+**Formal verification** — Mathematical proof that a system satisfies specified properties in all possible states. *(Section VIII)*
+
+**IOMMU (Input-Output Memory Management Unit)** — Hardware that lets you physically detach devices (RAM, GPUs) from the host OS and assign them exclusively to a VM. *(Section VI)*
+
+**Kernel** — The core of an operating system that manages memory, processes, hardware access, and system calls. *(Section VI)*
+
+**Mutation testing** — The practice of intentionally introducing bugs (mutants) into code and checking whether the test suite catches them. *(Section VIII)*
+
+**N-version programming** — Implementing the same specification independently in multiple versions and comparing outputs to detect disagreement. *(Section X)*
+
+**Nix** — A purely functional package manager that builds environments byte-for-byte identically, down to the cryptographic hash. *(Section VIII)*
+
+**Orchestrator model** — A heavyweight AI model with strong reasoning capability used for planning architecture, decomposing problems, and reviewing output. *(Section X)*
+
+**Progressive disclosure** — A design pattern that reveals information only when it is needed, rather than all at once. *(Section VII)*
+
+**Prompt injection** — An attack in which crafted input tricks an AI agent into treating data as instructions, potentially leaking secrets or executing unauthorised actions. *(Section IX)*
+
+**Property-based fuzzing** — Testing that verifies properties (e.g., "addition is commutative") across thousands of randomly generated inputs, including edge cases no human would think to test. *(Section VIII)*
+
+**RAG (Retrieval-Augmented Generation)** — A technique that retrieves relevant historical context (past errors, fixes, decisions) from a database and injects it into the agent's context window. *(Section XI)*
+
+**Semantic entropy** — A mathematical measure of a model's uncertainty in its output, derived from the probability distribution of generated tokens. *(Section X)*
+
+**SOPS (Secrets OPerationS)** — A tool from Mozilla that encrypts secret files so they can be safely stored in version control, decrypted only at runtime in memory. *(Section IX)*
+
+**Supply-chain attack** — An attack that compromises a system through a dependency, exploiting the trust relationship between a project and its libraries. *(Section III)*
+
+**Syscall (system call)** — A request from a running program to the operating system kernel to perform an operation (open a file, send a network packet, allocate memory). *(Section VI)*
+
+**TLA+ (Temporal Logic of Actions)** — A formal specification language for modelling concurrent and distributed systems, verified by the TLC model checker. *(Section VIII)*
+
+**Token** — A unit of text processed by language models. One token is roughly three-quarters of an English word. *(Section IV)*
+
+**Toxiproxy** — A proxy tool that sits between an application and its dependencies and simulates network failures (latency, disconnection, packet loss). *(Section VIII)*
+
+**Transitive dependency** — A library that your library's library depends on; dependencies can chain transitively many layers deep. *(Section III)*
+
+**VFIO (Virtual Function I/O)** — A framework for direct device access from user space, used with IOMMU for hardware isolation. *(Section VI)*
+
+**WORM (Write Once, Read Many)** — Storage configured so that data can be written but never deleted or modified for a defined retention period. *(Section IX)*
+
+---
+
+## Appendix B: Decision Trees
+
+### Decision Tree 1: Should I Use an Agent for This Task?
+
+```text
+   Is the task well-defined? (Can you write the spec in 1 sentence?)
+   |
+   ├── No  → Define the problem first. Write a one-sentence spec.
+   │          If you cannot, do not use an agent yet.
+   │
+   └── Yes
+       |
+       Is the task <10 lines of code?
+       |
+       ├── Yes → Write it yourself. The prompting overhead exceeds
+       │          the time to just type it.
+       │
+       └── No
+           |
+           Is the task security-critical? (auth, crypto, payments)
+           |
+           ├── Yes → Write it yourself. You must understand every byte.
+           │
+           └── No
+               |
+               Are you learning this concept for the first time?
+               |
+               ├── Yes → Write it yourself. The struggle is the point.
+               │
+               └── No
+                   |
+                   Is the task deeply architectural? (affects many files,
+                   requires structural trade-offs)
+                   |
+                   ├── Yes → Use the agent for implementation after
+                   │          you write the architecture spec yourself.
+                   │
+                   └── No  → USE THE AGENT.
+                              Include relevant files in context.
+                              Specify constraints explicitly.
+```
+
+### Decision Tree 2: Iterate or Regenerate?
+
+```text
+   Which pass are you on?
+   |
+   ├── Pass 1  → Iterate. Fix specifics (error handling, edge cases).
+   │              Regenerating wastes the context you already built.
+   │
+   ├── Pass 2  → Iterate. Fix naming, structure, logging.
+   │
+   ├── Pass 3  → Iterate. Add tests. Run mutation testing.
+   │
+   ├── Pass 4  → Iterate. Polish. Verify enforcement pipeline.
+   │
+   └── Pass 5+ →
+       |
+       Is the code materially improving each pass?
+       |
+       ├── Yes → Keep iterating. Each pass is cheaper than the last.
+       │
+       └── No  → STOP. Identify the root cause:
+           |
+           ├── Was the spec wrong?
+           │   → Rewrite the prompt. Start fresh.
+           │
+           ├── Does the agent lack codebase context?
+           │   → Add relevant files to context. Start fresh.
+           │
+           └── Is the task beyond the agent's capability?
+               → Write it yourself. Some tasks need human judgement.
+```
+
+### Decision Tree 3: Which Verification Technique?
+
+```text
+   What are you trying to verify?
+   |
+   ├── Basic correctness → Unit tests (pytest, jest, etc.)
+   |
+   ├── Test quality      → Mutation testing (mutmut, pytest-mutagen)
+   |
+   ├── Edge cases        → Property-based fuzzing (hypothesis, fast-check)
+   |
+   ├── Network resilience → Synthetic impairment (Toxiproxy)
+   |
+   ├── Security flaws    → Scanners (semgrep, trivy, codeql)
+   |
+   ├── Concurrency/dist  → Formal verification (TLA+)
+   |
+   └── Reproducibility   → Pinned environments (Nix, Docker digests)
+```
+
+---
+
+## Appendix C: Prompt Templates
+
+### Template 1: Bug Fix
+
+```text
+Fix a bug in `{file_path}` in the `{function_name}` function.
+
+**The problem:** {one-sentence description of the bug}
+**Expected behaviour:** {what should happen instead}
+
+**Root cause (if known):** {optional: what you found during investigation}
+
+**Constraints:**
+- Use only libraries already in `{requirements.txt/package.json}`.
+- Follow the error-handling patterns in `{reference_file}`.
+- Add a log statement at {info/warning/error} level for the fix.
+- Add tests for: {list of test cases}.
+
+**Acceptance criteria:**
+- `{test_command}` passes.
+- `{lint_command}` passes.
+- The fix handles {edge case 1} and {edge case 2}.
+```
+
+### Template 2: New Feature
+
+```text
+Create a {function/class/module} at `{file_path}` that {one-sentence purpose}.
+
+**Input:** {type and description of input}
+**Output:** {type and description of expected output}
+
+**Edge cases:**
+- {edge case 1}
+- {edge case 2}
+
+**Constraints:**
+- Do not add new dependencies.
+- Use {framework/library} patterns consistent with `{reference_file}`.
+- Maximum function length: {N} lines.
+- All external calls must have timeouts and error handling.
+
+**Testing:**
+- Write tests covering the happy path and all listed edge cases.
+- Run `{test_command}` and verify all pass.
+```
+
+### Template 3: Test Writing
+
+```text
+Write tests for `{file_path}` in `{test_file_path}`.
+
+**Coverage requirements:**
+- Happy path: {describe normal case}
+- {N} edge cases: {list edge cases}
+- Error paths: {describe failure scenarios}
+
+**Constraints:**
+- Use the existing test fixtures in `{fixture_file}`.
+- Follow the test patterns in `{reference_test_file}`.
+- Do not mock {external_service} — use the test container.
+- Each test must be independent (no shared state between tests).
+
+**Verification:**
+- Run `{test_command}` and confirm all tests pass.
+- Run mutation testing and confirm score > 80%.
+```
+
+### Template 4: Code Review Request
+
+```text
+Review the code at `{file_path}` for agent-specific failure modes.
+
+**Check each of the following:**
+1. Hallucinated APIs — does every external call exist in the docs?
+2. Verbose solutions — can any block be simplified or removed?
+3. Missing edge cases — what happens with empty/null/unexpected input?
+4. Copy-paste patterns — is any logic duplicated where it should be abstracted?
+5. Silent failures — are errors caught and logged, not swallowed?
+
+**For each issue found, provide:**
+- The exact line number
+- Why it is a problem
+- The minimal fix
+```
+
+---
+
+## Appendix D: Suggested Reading Path for Junior Engineers
+
+This guide covers concepts ranging from fundamental habits to advanced infrastructure. You do not need to read it all on day one. Here is a staged path based on where you are in your journey.
+
+### Week 1 — Foundations (read in order)
+
+Start here. These sections give you the mental model.
+
+1. **Section I (Introduction)** — Context and motivation (5 min)
+2. **Section II (Thinking Before Prompting)** — The most important skill (15 min)
+3. **Section III (The Anatomy of Production Code)** — What "good" looks like (15 min)
+4. **Section V (Cognitive Traps)** — The mistakes that catch everyone (10 min)
+
+**Goal by end of Week 1:** You can write a specific prompt, review the output critically, and recognise when you are falling into automation bias or learned helplessness.
+
+### Week 2 — The Workflow
+
+These sections teach you the day-to-day process of working with agents.
+
+1. **Section IV (The Iteration Loop)** — How to refine, not regenerate (10 min)
+2. **Section VII (The Enforcement Pipeline)** — The gate that never negotiates (10 min)
+3. **Section XII (The Human-Agent Handoff)** — Code review and intervention (10 min)
+4. **Section XIII (A Worked Example)** — Everything in practice (15 min)
+
+**Goal by end of Week 2:** You can take a ticket from prompt to pull request, running the full enforcement pipeline and reviewing agent output for common failure modes.
+
+### Week 3 — Verification and Professional Habits
+
+These sections make your code safe to ship.
+
+1. **Section VIII (Advanced Verification)** — Beyond happy-path tests (15 min)
+2. **Section XIV (The Professional Habits)** — Commits, docs, CI (5 min)
+3. **Section IX (Security and State Management, practical parts only)** — Prompt injection awareness and secrets management (10 min)
+
+**Goal by end of Week 3:** You can verify agent code with mutation testing, property-based fuzzing, and security scanners. You write clear commit messages and maintain your AGENTS.md file.
+
+### Reference Only — Understand, Do Not Implement Yet
+
+These sections describe infrastructure concepts. Read them to build vocabulary and context. Do not try to implement them until you are responsible for the systems they protect.
+
+- **Section VI (Containing the Blast Radius)** — eBPF, cgroups, hardware isolation
+- **Section X (Cognitive Routing and Economics)** — Multi-model rosters, N-version programming, semantic entropy gating
+- **Section XI (Telemetry and Memory)** — RAG-augmented error feedback, AST-aware diffing
+
+When you encounter these terms in conversations, code reviews, or incident reports, come back to these sections for the definition and context.
