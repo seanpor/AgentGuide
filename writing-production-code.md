@@ -271,24 +271,13 @@ The temptation is to treat the agent like a vending machine. Put in a prompt. Ge
 
 The productive approach is a loop:
 
-```text
-  +----------+
-  |  Prompt  |
-  +----+-----+
-       |
-       v
-  +----------+     +-----------+     +----------+
-  | Generate |---->|  Review   |---->| Identify |
-  +----------+     +-----------+     | specific |
-       ^                             | problems |
-       |                             +----+-----+
-       |                                  |
-       |          +-----------+           |
-       +----------|  Agent    |<----------+
-                  |  fixes    |
-                  |  specific |
-                  |  issues   |
-                  +-----------+
+```mermaid
+flowchart TD
+    P[Prompt] --> G[Generate]
+    G --> R[Review]
+    R --> I[Identify specific problems]
+    I --> A[Agent fixes specific issues]
+    A --> G
 ```
 
 Generate. Review. Identify what is wrong — specifically. Ask the agent to fix that problem. Review again. Repeat until the code is right.
@@ -400,23 +389,14 @@ The foundational principle of safe agentic engineering: **do not rely on the age
 
 Containment is not a single wall. It is a stack of defences, each catching what the others miss:
 
-```text
-+--------------------------------------------------+
-|  THERMAL / POWER CIRCUIT BREAKERS                |
-|  (Physical hardware protection)                  |
-+--------------------------------------------------+
-|  RESOURCE BUDGETS (cgroups)                      |
-|  (RAM, CPU, file descriptor limits)              |
-+--------------------------------------------------+
-|  SYSCALL INTERCEPTION (eBPF)                     |
-|  (Kernel-level monitoring of every OS request)   |
-+--------------------------------------------------+
-|  HARDWARE ISOLATION (VM + IOMMU passthrough)     |
-|  (Agent trapped in its own virtual machine)      |
-+--------------------------------------------------+
-|  THE AGENT                                       |
-|  (Code runs here, mistakes stay here)            |
-+--------------------------------------------------+
+```mermaid
+flowchart BT
+    A["THE AGENT<br/>(Code runs here, mistakes stay here)"]
+    H["HARDWARE ISOLATION (VM + IOMMU passthrough)<br/>(Agent trapped in its own virtual machine)"]
+    S["SYSCALL INTERCEPTION (eBPF)<br/>(Kernel-level monitoring of every OS request)"]
+    R["RESOURCE BUDGETS (cgroups)<br/>(RAM, CPU, file descriptor limits)"]
+    T["THERMAL / POWER CIRCUIT BREAKERS<br/>(Physical hardware protection)"]
+    A --> H --> S --> R --> T
 ```
 
 If the agent writes a runaway loop, the resource budget kills the process. If it tries to reach an unapproved server, the syscall interceptor blocks the connection. If it somehow escapes the sandbox, it is still trapped inside the VM. And if it pins the hardware at full tilt, the thermal breaker cuts power. Each layer is independent. The agent must defeat all of them to cause real damage. It cannot.
@@ -510,31 +490,17 @@ The tool for this is `make`. Not because it is fashionable (it was released in 1
 
 The enforcement pipeline has three layers, each catching what the others miss:
 
-```text
-  Code written by agent
-         |
-         v
-  +--------------+     FAIL? ----> REJECTED
-  |  FORMATTERS  |     (Code looks wrong)
-  +--------------+
-         | PASS
-         v
-  +--------------+     FAIL? ----> REJECTED
-  |   LINTERS    |     (Code has bad patterns)
-  +--------------+
-         | PASS
-         v
-  +--------------+     FAIL? ----> REJECTED
-  |   SCANNERS   |     (Code has security issues)
-  +--------------+
-         | PASS
-         v
-  +--------------+     FAIL? ----> REJECTED
-  |    TESTS     |     (Code doesn't work correctly)
-  +--------------+
-         | PASS
-         v
-     APPROVED
+```mermaid
+flowchart TD
+    Code["Code written by agent"] --> Formatters
+    Formatters -->|PASS| Linters
+    Formatters -->|FAIL| R1[REJECTED<br/>Code looks wrong]
+    Linters -->|PASS| Scanners
+    Linters -->|FAIL| R2[REJECTED<br/>Code has bad patterns]
+    Scanners -->|PASS| Tests
+    Scanners -->|FAIL| R3[REJECTED<br/>Code has security issues]
+    Tests -->|PASS| Approved[APPROVED]
+    Tests -->|FAIL| R4[REJECTED<br/>Code doesn't work correctly]
 ```
 
 **Formatters** ensure code looks consistent. They do not judge quality; they judge appearance. `ruff format` for Python, `shfmt` for Bash, `prettier` for YAML and JSON, `sqlfluff` for SQL. Consistent formatting is not vanity. It is the difference between a codebase that reads like a single author wrote it and one that reads like a committee argument. Agents produce code in whatever style they default to. Formatters erase that default and impose yours.
@@ -821,14 +787,11 @@ Instead, the agent produces artefacts, such as diff files, deployment plans, and
 
 Think of a postal slot in a door. You can push letters out, but you cannot reach back in. A data diode is the digital equivalent:
 
-```text
-  +-------------+       +------------+       +-------------+
-  |   AGENT     |       |   OUTPUT   |       |  HUMAN      |
-  |   SANDBOX   | ----> |   FOLDER   | ----> |  REVIEWER   | ----> Production
-  |             |       |  (one-way) |       |             |
-  | No outbound |       +------------+       +-------------+
-  | access      |
-  +-------------+
+```mermaid
+flowchart LR
+    A[AGENT SANDBOX<br/>No outbound access] -->|one-way| OF[OUTPUT FOLDER<br/>one-way]
+    OF --> HR[HUMAN REVIEWER]
+    HR --> Production
 ```
 
 The agent cannot exfiltrate data, push unreviewed code, or trigger deployments. It can propose. Humans dispose.
@@ -900,42 +863,20 @@ Not all AI models are equal. Some are large, slow, and good at reasoning. Others
 
 A well-designed agentic system uses a **multi-model roster**:
 
-```text
-                    +------------------+
-                    |   ORCHESTRATOR   |
-                    |  (heavyweight    |
-                    |   reasoning      |
-                    |   model)         |
-                    +--------+---------+
-                             |
-                   Plans architecture,
-                   decomposes problems,
-                   reviews output
-                             |
-                    +--------v---------+
-                    |    EXECUTOR      |
-                    |  (fast, local    |
-                    |   code-gen       |
-                    |   model)         |
-                    +--------+---------+
-                             |
-                   Writes functions,
-                   runs tests,
-                   iterates on failures
-                             |
-                    +--------v---------+
-                    |   CODE OUTPUT    |
-                    +--------+---------+
-                             |
-                             v
-                    Orchestrator reviews
-                    (N-version check)
-                             |
-                    +--------v---------+
-                    |  PASS? ----> Ship|
-                    |  FAIL? ----> Back|
-                    |           to Executor
-                    +------------------+
+```mermaid
+flowchart TD
+    O[ORCHESTRATOR<br/>Heavyweight reasoning model]
+    E[EXECUTOR<br/>Fast, local code-gen model]
+    CO[CODE OUTPUT]
+    Review{Orchestrator reviews<br/>N-version check}
+    Ship[Ship]
+    Back[Back to Executor]
+    O -->|Plans architecture, decomposes problems, reviews output| E
+    E -->|Writes functions, runs tests, iterates on failures| CO
+    CO --> Review
+    Review -->|PASS| Ship
+    Review -->|FAIL| Back
+    Back --> E
 ```
 
 **The Orchestrator** is a heavyweight model: something with strong reasoning capabilities. It plans architecture, designs schemas, decomposes problems into tasks, and reviews the output of other models. It is the senior architect. It thinks slowly and carefully.
@@ -1449,94 +1390,54 @@ The engineer who reads the agent's code, understands it, modifies it, and ships 
 
 ### Decision Tree 1: Should I Use an Agent for This Task?
 
-```text
-   Is the task well-defined? (Can you write the spec in 1 sentence?)
-   |
-   ├── No  → Define the problem first. Write a one-sentence spec.
-   │          If you cannot, do not use an agent yet.
-   │
-   └── Yes
-       |
-       Is the task <10 lines of code?
-       |
-       ├── Yes → Write it yourself. The prompting overhead exceeds
-       │          the time to just type it.
-       │
-       └── No
-           |
-           Is the task security-critical? (auth, crypto, payments)
-           |
-           ├── Yes → Write it yourself. You must understand every byte.
-           │
-           └── No
-               |
-               Are you learning this concept for the first time?
-               |
-               ├── Yes → Write it yourself. The struggle is the point.
-               │
-               └── No
-                   |
-                   Is the task deeply architectural? (affects many files,
-                   requires structural trade-offs)
-                   |
-                   ├── Yes → Use the agent for implementation after
-                   │          you write the architecture spec yourself.
-                   │
-                   └── No  → USE THE AGENT.
-                              Include relevant files in context.
-                              Specify constraints explicitly.
+```mermaid
+flowchart TD
+    Q1{Is the task well-defined?<br/>Can you write the spec in 1 sentence?}
+    Q2{Is the task <10 lines of code?}
+    Q3{Is the task security-critical?<br/>auth, crypto, payments}
+    Q4{Are you learning this<br/>concept for the first time?}
+    Q5{Is the task deeply architectural?<br/>affects many files,<br/>requires structural trade-offs}
+    Q1 -->|No| A1[Define the problem first.<br/>Write a one-sentence spec.<br/>If you cannot, do not use an agent yet.]
+    Q1 -->|Yes| Q2
+    Q2 -->|Yes| A2[Write it yourself.<br/>The prompting overhead exceeds<br/>the time to just type it.]
+    Q2 -->|No| Q3
+    Q3 -->|Yes| A3[Write it yourself.<br/>You must understand every byte.]
+    Q3 -->|No| Q4
+    Q4 -->|Yes| A4[Write it yourself.<br/>The struggle is the point.]
+    Q4 -->|No| Q5
+    Q5 -->|Yes| A5[Use the agent for implementation<br/>after you write the architecture<br/>spec yourself.]
+    Q5 -->|No| A6[USE THE AGENT.<br/>Include relevant files in context.<br/>Specify constraints explicitly.]
 ```
 
 ### Decision Tree 2: Iterate or Regenerate?
 
-```text
-   Which pass are you on?
-   |
-   ├── Pass 1  → Iterate. Fix specifics (error handling, edge cases).
-   │              Regenerating wastes the context you already built.
-   │
-   ├── Pass 2  → Iterate. Fix naming, structure, logging.
-   │
-   ├── Pass 3  → Iterate. Add tests. Run mutation testing.
-   │
-   ├── Pass 4  → Iterate. Polish. Verify enforcement pipeline.
-   │
-   └── Pass 5+ →
-       |
-       Is the code materially improving each pass?
-       |
-       ├── Yes → Keep iterating. Each pass is cheaper than the last.
-       │
-       └── No  → STOP. Identify the root cause:
-           |
-           ├── Was the spec wrong?
-           │   → Rewrite the prompt. Start fresh.
-           │
-           ├── Does the agent lack codebase context?
-           │   → Add relevant files to context. Start fresh.
-           │
-           └── Is the task beyond the agent's capability?
-               → Write it yourself. Some tasks need human judgement.
+```mermaid
+flowchart TD
+    Q1{Which pass are you on?}
+    Q1 -->|Pass 1| A1[Iterate. Fix specifics.<br/>error handling, edge cases.<br/>Regenerating wastes context.]
+    Q1 -->|Pass 2| A2[Iterate. Fix naming,<br/>structure, logging.]
+    Q1 -->|Pass 3| A3[Iterate. Add tests.<br/>Run mutation testing.]
+    Q1 -->|Pass 4| A4[Iterate. Polish.<br/>Verify enforcement pipeline.]
+    Q1 -->|Pass 5+| Q2{Is the code materially<br/>improving each pass?}
+    Q2 -->|Yes| A5[Keep iterating.<br/>Each pass is cheaper<br/>than the last.]
+    Q2 -->|No| Q3{Identify the root cause}
+    Q3 -->|Was the spec wrong?| A6[Rewrite the prompt.<br/>Start fresh.]
+    Q3 -->|Does the agent lack<br/>codebase context?| A7[Add relevant files to context.<br/>Start fresh.]
+    Q3 -->|Is the task beyond<br/>the agent's capability?| A8[Write it yourself.<br/>Some tasks need<br/>human judgement.]
 ```
 
 ### Decision Tree 3: Which Verification Technique?
 
-```text
-   What are you trying to verify?
-   |
-   ├── Basic correctness → Unit tests (pytest, jest, etc.)
-   |
-   ├── Test quality      → Mutation testing (mutmut, pytest-mutagen)
-   |
-   ├── Edge cases        → Property-based fuzzing (hypothesis, fast-check)
-   |
-   ├── Network resilience → Synthetic impairment (Toxiproxy)
-   |
-   ├── Security flaws    → Scanners (semgrep, trivy, codeql)
-   |
-   ├── Concurrency/dist  → Formal verification (TLA+)
-   |
-   └── Reproducibility   → Pinned environments (Nix, Docker digests)
+```mermaid
+flowchart TD
+    Q1{What are you trying to verify?}
+    Q1 -->|Basic correctness| A1[Unit tests<br/>pytest, jest, etc.]
+    Q1 -->|Test quality| A2[Mutation testing<br/>mutmut, pytest-mutagen]
+    Q1 -->|Edge cases| A3[Property-based fuzzing<br/>hypothesis, fast-check]
+    Q1 -->|Network resilience| A4[Synthetic impairment<br/>Toxiproxy]
+    Q1 -->|Security flaws| A5[Scanners<br/>semgrep, trivy, codeql]
+    Q1 -->|Concurrency / distributed| A6[Formal verification<br/>TLA+]
+    Q1 -->|Reproducibility| A7[Pinned environments<br/>Nix, Docker digests]
 ```
 
 ---
