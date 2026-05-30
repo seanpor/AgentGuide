@@ -69,7 +69,7 @@ The TOC must link to every major section (I–XV) and every named subsection. Fo
 | XIII | The Task, Step One Understand Before Prompting, Step Two Write the Prompt, Step Three Review the Agents Output, Step Four Review the Tests, Step Five Mutation Testing, Step Six Enforcement, Step Seven Commit and Merge, What Just Happened |
 | XIV | Version Control as Communication, Documentation, Continuous Integration, Knowing When to Stop |
 | XV | The Tool Not the Crutch, The Fortress Is the Engineering, The Engineer You Are Becoming |
-| Appendices | Glossary of Terms, Decision Trees, Prompt Templates, Suggested Reading Path |
+| Appendices | Glossary of Terms, Decision Trees, Prompt Templates |
 
 ### 2. Add a Glossary Appendix
 
@@ -345,9 +345,9 @@ Review the code at `{file_path}` for agent-specific failure modes.
 - The minimal fix
 ```
 
-### 5. Add a Suggested Reading Path
+### 5. Add a Suggested Reading Path (Removed — see Phase 21)
 
-Add a new appendix section `## Appendix D: Suggested Reading Path for Junior Engineers` after the prompt templates.
+This step was applied in Phase 8 and later reverted in Phase 21. The document is short enough to read in one sitting, and the "understand for now" hints throughout the text serve the same orienting purpose without a separate reading path.
 
 This section maps the document's sections to a staged learning plan:
 
@@ -599,11 +599,7 @@ Before renaming this file to `08-reference-architecture_COMPLETED.md`, verify:
 
 ### Suggested Reading Path
 
-- [ ] `## Appendix D: Suggested Reading Path` exists after the prompt templates
-- [ ] The path is divided into at least three stages (Week 1, Week 2, Week 3)
-- [ ] Each stage lists specific sections with time estimates
-- [ ] A "Reference Only" section identifies sections for later reading
-- [ ] Each stage has a concrete "Goal by end of" statement
+**Removed in Phase 21.** The reading path was removed because the document is short enough to read without staging, and several sections already contain "understand this concept now" hints that serve the same purpose.
 
 ### Reference Directory and Files
 
