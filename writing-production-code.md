@@ -8,7 +8,7 @@
 
 ### From Autocomplete to Autonomy
 
-Something has changed in software engineering, and most junior engineers have not yet noticed.
+Something has changed in software engineering, and the implications are not yet widely understood.
 
 Until recently, AI-assisted development meant a clever autocomplete. GitHub Copilot would suggest the next line, the next function, the next boilerplate. You accepted or rejected. You remained in control. The machine was a fast typist with good instincts — nothing more.
 
@@ -18,17 +18,17 @@ This is powerful. It is also dangerous.
 
 An unsupervised AI with root access is not a colleague. It is a liability. It can delete a production database, leak an API key, or write an infinite loop that pins a server at full utilisation until the hardware throttles. It will do these things not out of malice but out of the same cheerful confidence with which it does everything else.
 
-This guide exists to close the gap between *code that works* and *code that ships*. It is written for junior engineers — people who can write a function that passes its tests but have not yet internalised the habits, constraints, and infrastructure that separate a working prototype from a production system. It assumes you have access to AI agents and intend to use them. It does not assume you know how to use them safely.
+This guide exists to close the gap between *code that works* and *code that ships*. It is written for engineers who can write a function that passes its tests but have not yet internalised the habits, constraints, and infrastructure that separate a working prototype from a production system. It assumes you have access to AI agents and intend to use them. It does not assume you know how to use them safely.
 
 The thesis is simple: **production-quality code is not about writing better prompts. It is about building better constraints.** The agent is a tool. The fortress you build around it is the engineering.
 
 ### How to Read This Guide
 
-This document moves from the conceptual to the concrete. It begins with how to think before you prompt and how to work with an agent iteratively. It then covers the cognitive traps that catch junior engineers, the anatomy of production code itself, and the infrastructure of containment, enforcement, verification, and security that makes autonomous agents safe. It includes a full worked example — a task taken from prompt to merge — and closes with the professional habits that tie everything together.
+This document moves from the conceptual to the concrete. It begins with how to think before you prompt and how to work with an agent iteratively. It then covers the cognitive traps that catch engineers new to agentic workflows, the anatomy of production code itself, and the infrastructure of containment, enforcement, verification, and security that makes autonomous agents safe. It includes a full worked example — a task taken from prompt to merge — and closes with the professional habits that tie everything together.
 
 Read it in order the first time. Return to specific sections as reference thereafter.
 
-Some sections describe infrastructure you will not build yourself — hardware isolation, eBPF syscall interception, formal verification. These are labelled. Read them to understand the landscape. Implement them when your role and your systems demand it.
+Some sections describe infrastructure you may not configure yourself — hardware isolation, eBPF syscall interception, formal verification. These are marked with a **practical note** indicating whether the concept is something to *understand* now or *implement* today. Read the "understand" sections to build vocabulary and context. Implement them when your role and your systems demand it.
 
 ---
 
@@ -36,7 +36,7 @@ Some sections describe infrastructure you will not build yourself — hardware i
 
 ### The Problem Precedes the Prompt
 
-The most common mistake junior engineers make with AI agents is not a prompting error. It is a thinking error. They open the chat window before they have understood the problem.
+The most common mistake engineers make with AI agents is not a prompting error. It is a thinking error. They open the chat window before they have understood the problem.
 
 An agent will always produce *something*. Give it a vague instruction and it will produce a vague solution — confidently, fluently, and wrong. The quality of what comes out is bounded by the quality of what goes in. This is true of every engineering tool ever made, but agents obscure it because they never refuse to answer.
 
@@ -80,7 +80,7 @@ Not every task benefits from an agent. Knowing when to write code yourself is as
 
 **Write it yourself when:** you are learning a new concept (the struggle is the point), the task requires fewer than ten lines of code (the prompting overhead exceeds the writing time), the problem is deeply architectural (agents are poor at structural decisions that affect many files), you are debugging a subtle race condition or memory issue (agents cannot observe runtime behaviour the way a debugger can), or the code is security-critical and you need to understand every byte (authentication, encryption, payment processing).
 
-The junior engineer's temptation is to use the agent for everything because it feels faster. The senior engineer's discipline is to use the agent for the right things because it actually is faster. The difference is judgement, and judgement comes from having done the work both ways.
+The temptation is to use the agent for everything because it feels faster. The discipline is to use the agent for the right things because it actually is faster. The difference is judgement, and judgement comes from having done the work both ways.
 
 ---
 
@@ -134,7 +134,7 @@ Agents rarely add logging unless asked. When they do, they tend to log too much 
 
 Agents love adding libraries. Ask an agent to parse a CSV and it will reach for `pandas`. Ask it to make an HTTP request and it will import `requests` — even in a codebase that uses `httpx` or the standard library's `urllib`. Ask it to format a date and it will pull in `dateutil` when `datetime.strftime` would suffice.
 
-Every dependency is a liability. It must be updated. It must be audited for vulnerabilities. It must be compatible with every other dependency. It increases install time, image size, and the surface area for supply-chain attacks. A library with 200 transitive dependencies is 200 opportunities for a CVE to appear in your next security scan.
+Every dependency is a liability. It must be updated. It must be audited for vulnerabilities — publicly disclosed security flaws known as CVEs (Common Vulnerabilities and Exposures), each assigned a unique identifier like `CVE-2024-1234`. It must be compatible with every other dependency. It increases install time, image size, and the surface area for supply-chain attacks — where an attacker compromises a library you depend on, and through it, gains access to your system. A library with 200 transitive dependencies (libraries that *your* library depends on, and *their* libraries depend on, and so on) is 200 opportunities for a CVE to appear in your next security scan.
 
 Before accepting any agent-suggested dependency, ask three questions:
 
@@ -154,15 +154,37 @@ Instruct the agent explicitly: "Use only libraries already present in `requireme
 
 The single most important habit for working with agents is this: **iterate on the output rather than starting over.**
 
-The temptation — especially for junior engineers — is to treat the agent like a vending machine. Put in a prompt. Get out code. If the code is not right, put in a new prompt and try again. This is the most expensive way to work with an agent. It wastes context, wastes tokens, wastes time, and produces worse results.
+The temptation is to treat the agent like a vending machine. Put in a prompt. Get out code. If the code is not right, put in a new prompt and try again. This is the most expensive way to work with an agent. It wastes context, wastes tokens (the units of text that AI models process — roughly three-quarters of a word each), wastes time, and produces worse results.
 
-The productive approach is a loop: generate, review, identify the specific problem, ask the agent to fix that specific problem, review again.
+The productive approach is a loop:
+
+```
+  +----------+
+  |  Prompt  |
+  +----+-----+
+       |
+       v
+  +----------+     +-----------+     +----------+
+  | Generate |---->|  Review   |---->| Identify |
+  +----------+     +-----------+     | specific |
+       ^                             | problems |
+       |                             +----+-----+
+       |                                  |
+       |          +-----------+           |
+       +----------|  Agent    |<----------+
+                  |  fixes    |
+                  |  specific |
+                  |  issues   |
+                  +-----------+
+```
+
+Generate. Review. Identify what is wrong — specifically, not vaguely. Ask the agent to fix that specific problem. Review again. Repeat until the code is right.
 
 ### The Loop in Practice
 
 **Pass one: the shape.** Your initial prompt produces a first draft. It will be roughly right in structure but wrong in details. The function signature is correct. The control flow is plausible. The error handling is missing. The names are generic.
 
-**Pass two: the edges.** You read the output and identify what is wrong — specifically, not vaguely. Not "this isn't great" but "the `fetch_user` call on line 14 has no timeout and no error handling for a 404 response." You feed this back to the agent: "Add a 5-second timeout to the `fetch_user` call and handle the case where the user is not found by returning `None`." The agent fixes it.
+**Pass two: the edges.** You read the output and identify what is wrong — specifically. Not "this isn't great" but "the `fetch_user` call on line 14 has no timeout and no error handling for a 404 response." You feed this back to the agent: "Add a 5-second timeout to the `fetch_user` call and handle the case where the user is not found by returning `None`." The agent fixes it.
 
 **Pass three: the polish.** You check naming, structure, logging, and edge cases. You ask the agent to rename `data` to `user_record`, to extract the validation logic into a separate function, to add a log statement before the database write. Each request is small and specific.
 
@@ -201,11 +223,11 @@ Practical rules:
 
 ### The Hazards of Working with Machines That Never Say "I Don't Know"
 
-Agents are persuasive. They write fluently, they format beautifully, and they never express doubt. This combination is dangerous for engineers who have not yet developed the instincts to spot bad code on sight. Three traps, in particular, catch junior engineers repeatedly.
+Agents are persuasive. They write fluently, they format beautifully, and they never express doubt. This combination is dangerous for anyone who has not yet developed the instincts to spot bad code on sight. Three traps, in particular, catch engineers repeatedly.
 
 ### Automation Bias
 
-Automation bias is the tendency to trust a machine's output because it comes from a machine. When an agent produces code that looks correct — proper indentation, confident variable names, plausible logic — the brain's first response is to accept it. The second response, the critical one, is to verify it. Many junior engineers never reach the second response.
+Automation bias is the tendency to trust a machine's output because it comes from a machine. When an agent produces code that looks correct — proper indentation, confident variable names, plausible logic — the brain's first response is to accept it. The second response, the critical one, is to verify it. It is easy to skip the second response.
 
 The antidote is procedural: **treat every line of agent output as untrusted.** Read it the way you would read a pull request from a colleague you have never worked with. Check the function signatures against the actual library documentation. Run the tests. Look for the edge cases. The code may be excellent. It may also be confidently wrong. The formatting tells you nothing.
 
@@ -249,45 +271,97 @@ The alternative is **capability-based hard gates**. Instead of telling the agent
 
 This is the foundational principle of safe agentic engineering: **do not rely on the agent's judgement. Rely on the environment's constraints.**
 
+### The Layered Defence Model
+
+Containment is not a single wall. It is a stack of defences, each catching what the others miss:
+
+```
++--------------------------------------------------+
+|  THERMAL / POWER CIRCUIT BREAKERS                |
+|  (Physical hardware protection)                  |
++--------------------------------------------------+
+|  RESOURCE BUDGETS (cgroups)                      |
+|  (RAM, CPU, file descriptor limits)              |
++--------------------------------------------------+
+|  SYSCALL INTERCEPTION (eBPF)                     |
+|  (Kernel-level monitoring of every OS request)   |
++--------------------------------------------------+
+|  HARDWARE ISOLATION (VM + IOMMU passthrough)     |
+|  (Agent trapped in its own virtual machine)      |
++--------------------------------------------------+
+|  THE AGENT                                       |
+|  (Code runs here, mistakes stay here)            |
++--------------------------------------------------+
+```
+
+If the agent writes a runaway loop, the resource budget kills the process. If it tries to reach an unapproved server, the syscall interceptor blocks the connection. If it somehow escapes the sandbox, it is still trapped inside the VM. And if it pins the hardware at full tilt, the thermal breaker cuts power. Each layer is independent. The agent must defeat all of them to cause real damage. It cannot.
+
 ### Hardware Isolation
 
-> **For junior engineers:** Understand this concept. You will not set up IOMMU passthrough yourself, but you should know why it exists and what it protects against. When your team discusses sandboxing strategy, this is the vocabulary.
+> **Practical note:** This is a concept to understand now, even if you are not configuring it today. It is the foundation of isolation architecture, and it is the vocabulary your team will use when discussing sandboxing strategy.
 
 When you run an unrestricted agent on a machine with access to your files, your network, and your hardware, you are trusting the agent not to cause damage. Trust is not an engineering strategy.
 
-The first layer of defence is isolation. Not Docker containers — containers share the host kernel, and kernel exploits can break out of them. Real isolation means virtual machines with hardware-level passthrough. Technologies like IOMMU and VFIO allow you to physically detach specific RAM and specific GPUs from the host operating system and assign them exclusively to a virtual machine. The agent runs inside that VM. Even if it gains root access inside its sandbox, it is, as the saying goes, shouting in an empty room. It physically cannot reach the host.
+The first layer of defence is isolation. Not Docker containers — containers share the host kernel (the core of the operating system that manages memory, processes, and hardware access), and kernel exploits can break out of them. Real isolation means virtual machines with hardware-level passthrough.
 
-This may sound extreme. It is not. It is the same principle that underpins every secure system ever built: minimise the blast radius. If the agent's code goes wrong — and it will, eventually — the damage is contained to the sandbox. Your host machine, your files, your network, and your production systems remain untouched.
+Technologies like IOMMU and VFIO — hardware features that let you physically detach specific RAM and specific GPUs from the host operating system and assign them exclusively to a virtual machine — create a box the agent cannot escape from. The agent runs inside that VM. Even if it gains root access inside its sandbox, it is, as the saying goes, shouting in an empty room. It physically cannot reach the host.
+
+This may sound extreme. It is not. It is the same principle that underpins every secure system ever built: minimise the blast radius. If the agent's code goes wrong — and it will, eventually — the damage is contained to the sandbox.
 
 **What this means for you today:** never run agent-generated scripts directly on your local shell. Dispatch them into an isolated environment — at minimum, a Docker container; ideally, a VM. The inconvenience is trivial. The protection is not.
 
 ### Syscall Interception
 
-> **For junior engineers:** Understand this concept. You will configure eBPF policies when you are responsible for infrastructure. For now, know that this layer exists and what it catches.
+> **Practical note:** This is a concept to understand now. You may configure eBPF policies when you are responsible for infrastructure. Knowing this layer exists — and what it catches — will make you a better code reviewer. When you see an unexpected network call in agent output, you will know why it matters.
 
-Even inside a sandbox, the agent's code will make system calls — requests to the operating system to open files, allocate memory, or open network connections. Most of these are benign. Some are not.
+Even inside a sandbox, the agent's code will make system calls — requests to the operating system to open files, allocate memory, or open network connections. Every time a program reads a file, sends a network packet, or allocates memory, it is making a system call (or "syscall") to the kernel. Most of these are benign. Some are not.
 
-Tools built on eBPF (extended Berkeley Packet Filter) — such as Tetragon or Cilium — sit deep inside the Linux kernel and watch every system call. They act as a bouncer at the door between the agent's code and the operating system. If the agent's code tries to open a network connection to an unapproved IP address — perhaps attempting to download a dependency from an unvetted server — eBPF intercepts the request and kills the process before the connection is established.
+Tools built on eBPF (extended Berkeley Packet Filter — a Linux technology that lets you run small, safe programs *inside* the kernel to monitor what other programs are doing) sit deep inside the kernel and watch every system call.
 
-This is not hypothetical. Agents routinely attempt to install packages from unexpected sources, make outbound network calls to APIs you did not authorise, and access filesystem paths they should not be touching. Syscall interception catches all of this at the kernel level, where the agent cannot bypass it.
+Think of it like a building where every door has a security guard who checks your ID badge. You can walk the hallways freely, but the moment you try to open a door you are not authorised for, the guard stops you. eBPF is that guard for every door in the operating system.
+
+A real eBPF policy looks something like this:
+
+```yaml
+# Tetragon policy: block outbound connections to unapproved IPs
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+spec:
+  kprobes:
+    - call: "tcp_connect"
+      selectors:
+        - matchActions:
+            - action: Sigkill    # Kill the process immediately
+```
+
+If the agent's code tries to open a network connection to an unapproved IP address — perhaps attempting to download a dependency from an unvetted server — eBPF intercepts the request and kills the process before the connection is established.
 
 **What this means for you today:** be aware that agent-generated code may attempt network calls you did not expect. Review outbound connections in the same way you review function calls. If the code reaches for a URL you do not recognise, investigate before shipping.
 
 ### Resource Budgets
 
-> **For junior engineers:** Implement this today. `cgroups` and `ulimit` are available on any Linux system and require no special infrastructure.
+> **Practical note:** Implement this today. `cgroups` and `ulimit` are available on any Linux system and require no special infrastructure.
 
 Agents are not efficient. They will write unoptimised queries that load gigabytes of data into memory. They will spawn processes that consume every available CPU core. They will enter loops that pin hardware at full utilisation for hours.
 
-Linux control groups (cgroups) solve this by imposing hard mathematical limits on resource consumption. A process can be given a maximum amount of RAM, a maximum share of CPU time, and a maximum number of file descriptors. Exceed the limit and the process is killed — instantly, without negotiation.
+Linux control groups (cgroups) solve this by imposing hard mathematical limits on resource consumption. Think of it like a prepaid phone plan with a hard data cap. You can use your data however you like, but when you hit the limit, the connection stops. No overage charges, no warnings — just a hard stop.
+
+A process can be given a maximum amount of RAM, a maximum share of CPU time, and a maximum number of file descriptors. Exceed the limit and the process is killed — instantly, without negotiation.
 
 This serves two purposes. First, it prevents runaway processes from destabilising the system. Second, and more subtly, it *forces the agent to write efficient code*. A brute-force solution that loads everything into memory will be killed by the memory limit. The agent must then learn to process data in chunks, to stream rather than buffer, to be economical with resources. The constraint becomes a teacher.
 
-A simple example: running an agent's process with a 2GB memory limit via `systemd-run --scope -p MemoryMax=2G python agent_script.py` ensures that a memory leak or an unbounded query cannot consume the host. The process dies, the error is logged, and you investigate — rather than discovering the problem when the entire server becomes unresponsive.
+A simple example:
+
+```bash
+# Run the agent's script with a 2GB memory limit
+systemd-run --scope -p MemoryMax=2G python agent_script.py
+```
+
+If the script tries to use more than 2GB of RAM, the operating system kills it. The error is logged. You investigate — rather than discovering the problem when the entire server becomes unresponsive.
 
 ### Thermal and Power Circuit Breakers
 
-> **For junior engineers:** Understand this concept. You will encounter thermal throttling when working with GPU-accelerated agents. The principle applies at every scale.
+> **Practical note:** This concept applies at every scale — even a laptop fan spinning up is a primitive version of a thermal circuit breaker. You will encounter thermal throttling when working with GPU-accelerated agents.
 
 Hardware has physical limits. A CPU running at 100% utilisation generates heat. A GPU pinned at full compute draw consumes power. Under normal operation, cooling systems manage this. Under pathological operation — an agent stuck in a loop, retrying a failed operation thousands of times per second — cooling systems are overwhelmed.
 
@@ -295,19 +369,48 @@ A thermal circuit breaker is a background daemon that monitors temperature and p
 
 This is not paranoia. It is the same engineering discipline that puts fuses in electrical circuits and pressure relief valves on boilers. The agent is a powerful tool. Powerful tools need emergency stops.
 
+> **Key takeaway:** Never rely on the agent to follow rules. Build an environment where breaking the rules is physically impossible. Start with Docker containers and resource limits today; add syscall interception and hardware isolation as your systems grow.
+
 ---
 
 ## VII. The Enforcement Pipeline
 
 ### The Gate That Never Negotiates
 
-Every production codebase needs a quality gate — a set of checks that code must pass before it is considered shippable. In traditional development, this gate lives in CI/CD. In agentic development, it must be local, immediate, and uncompromising.
+Every production codebase needs a quality gate — a set of checks that code must pass before it is considered shippable. In traditional development, this gate lives in CI/CD (Continuous Integration / Continuous Deployment — automated systems that run checks every time code is pushed). In agentic development, it must be local, immediate, and uncompromising.
 
 The tool for this is `make`. Not because it is fashionable — it was released in 1976 — but because it is stable, language-agnostic, and behaves identically on a laptop and a CI server. The agent must successfully run `make enforce` before its work is considered complete. If any check fails, the code is rejected. There is no override. There is no "I'll fix it later." The gate does not negotiate.
 
 ### The Three Lines of Defence
 
-The enforcement pipeline has three layers, each catching what the others miss.
+The enforcement pipeline has three layers, each catching what the others miss:
+
+```
+  Code written by agent
+         |
+         v
+  +--------------+     FAIL? ----> REJECTED
+  |  FORMATTERS  |     (Code looks wrong)
+  +--------------+
+         | PASS
+         v
+  +--------------+     FAIL? ----> REJECTED
+  |   LINTERS    |     (Code has bad patterns)
+  +--------------+
+         | PASS
+         v
+  +--------------+     FAIL? ----> REJECTED
+  |   SCANNERS   |     (Code has security issues)
+  +--------------+
+         | PASS
+         v
+  +--------------+     FAIL? ----> REJECTED
+  |    TESTS     |     (Code doesn't work correctly)
+  +--------------+
+         | PASS
+         v
+     APPROVED
+```
 
 **Formatters** ensure code looks consistent. They do not judge quality; they judge appearance. `ruff format` for Python, `shfmt` for Bash, `prettier` for YAML and JSON, `sqlfluff` for SQL. Consistent formatting is not vanity. It is the difference between a codebase that reads like a single author wrote it and one that reads like a committee argument. Agents produce code in whatever style they default to. Formatters erase that default and impose yours.
 
@@ -394,6 +497,8 @@ Beyond the Makefile, the environment itself enforces certain standards:
 
 **Data sovereignty.** API endpoints, package mirrors, and telemetry must resolve to approved infrastructure. Network firewalls block routing to unapproved regions. This is not just a compliance requirement; it is a latency and reliability measure. The agent cannot accidentally introduce dependencies on infrastructure outside your control.
 
+> **Key takeaway:** `make enforce` is the gate that never negotiates. Build it early, make it comprehensive, and never let the agent modify it. The three layers — formatters, linters, scanners — each catch what the others miss.
+
 ---
 
 ## VIII. Advanced Verification
@@ -408,7 +513,7 @@ Production code must be verified against failure, not just success. This require
 
 ### Mutation Testing
 
-> **For junior engineers:** Implement this today. `mutmut` installs with `pip install mutmut` and runs against any pytest suite. It is the single highest-value verification tool you can add to your workflow.
+> **Practical note:** Implement this today. `mutmut` installs with `pip install mutmut` and runs against any pytest suite. It is the single highest-value verification tool you can add to your workflow.
 
 Mutation testing is the most underused verification technique in software engineering, and it is the single best way to determine whether your tests are actually testing anything.
 
@@ -440,7 +545,7 @@ A production codebase should target a mutation score above 80%. Below that, your
 
 ### Property-Based Fuzzing
 
-> **For junior engineers:** Implement this today. `hypothesis` installs with `pip install hypothesis` and integrates directly with pytest.
+> **Practical note:** Implement this today. `hypothesis` installs with `pip install hypothesis` and integrates directly with pytest.
 
 Most tests use specific inputs: `calculate_tax(100)` should return `20`. This verifies one case. Property-based fuzzing (using tools like `hypothesis` for Python) verifies thousands.
 
@@ -462,35 +567,79 @@ Agents rarely write property-based tests unless asked. Ask.
 
 ### Formal Verification
 
-> **For junior engineers:** Understand this concept. You will use TLA+ when working on distributed systems, concurrent protocols, or state machines where failure means data loss. It is not needed for most day-to-day code.
+> **Practical note:** This is a concept to understand now. TLA+ is used for distributed systems, concurrent protocols, or state machines where failure means data loss. It is not needed for most day-to-day code, but it is the tool of choice for infrastructure that must never fail — payment systems, message queues, distributed locks.
 
 For most code, testing is sufficient. For some code — concurrent systems, distributed protocols, cryptographic implementations — testing is not enough. You need mathematical proof.
 
-TLA+ (Temporal Logic of Actions) is a specification language that lets you describe a system's behaviour formally and then use a model checker (TLC) to verify that certain properties hold in all possible states. If your system has a deadlock, TLA+ will find it. If your protocol can lose a message, TLA+ will find it. If your distributed lock can be held by two nodes simultaneously, TLA+ will find it.
+TLA+ (Temporal Logic of Actions) is a specification language that lets you describe a system's behaviour formally and then use a model checker (TLC) to verify that certain properties hold in all possible states.
 
-This is not practical for every function. It is essential for the functions where failure means data loss, security breaches, or system-wide outages. Agents can be prompted to write TLA+ specifications alongside their implementations, and the model checker can verify the specification before any code is deployed.
+Imagine writing down every possible state your system could ever be in — every combination of events, every timing, every failure — and then having a machine check each one to prove nothing can go wrong. That is TLA+. If your system has a deadlock, TLA+ will find it. If your protocol can lose a message, TLA+ will find it. If your distributed lock can be held by two nodes simultaneously, TLA+ will find it.
+
+A TLA+ specification for a simple mutex (a lock that ensures only one process accesses a resource at a time) looks like this:
+
+```tla
+---- MODULE SimpleMutex ----
+EXTENDS Naturals
+
+VARIABLES owner
+
+Init == owner = 0
+
+Acquire(p) == /\ owner = 0
+              /\ owner' = p
+
+Release(p) == /\ owner = p
+              /\ owner' = 0
+
+Next == \E p \in {1,2} : Acquire(p) \/ Release(p)
+
+\* Safety: at most one process owns the mutex
+Safety == \A p, q \in {1,2} : owner = p /\ owner = q => p = q
+====
+```
+
+The model checker then exhaustively explores every possible sequence of events to verify that the `Safety` property always holds. No test suite can do this — tests check specific scenarios; model checking checks *all* scenarios.
+
+This is not practical for every function. It is essential for the functions where failure means data loss, security breaches, or system-wide outages.
 
 ### Synthetic Network Impairment
 
-> **For junior engineers:** Understand this concept. Implement it when your application makes network calls to external services — which, in production, is almost always.
+> **Practical note:** Understand this concept now. Implement it when your application makes network calls to external services — which, in production, is almost always. This is one of the most common sources of production incidents: code that works perfectly in development but fails when the network is unreliable.
 
 Agents assume the network is perfect. In their sandbox, it usually is. In production, it is not.
 
-Networks drop packets. Connections time out. DNS resolution fails. APIs return 503. Latency spikes from 5ms to 5,000ms. Production code must handle all of this gracefully — with retries, exponential backoff, circuit breakers, and clear error messages.
+Networks drop packets. Connections time out. DNS resolution fails. APIs return 503. Latency spikes from 5ms to 5,000ms. Production code must handle all of this gracefully — with retries, exponential backoff (waiting progressively longer between retries: 1 second, then 2, then 4, then 8 — rather than hammering a failing service with requests every millisecond), circuit breakers, and clear error messages.
 
-Tools like Toxiproxy sit between your application and its dependencies and simulate terrible network conditions. They introduce latency, drop connections, corrupt data, and return error codes. Your tests run against this impaired network, and your code either handles it or it doesn't.
+Tools like Toxiproxy sit between your application and its dependencies and simulate terrible network conditions. A Toxiproxy configuration looks like this:
+
+```json
+{
+  "name": "postgres_toxic",
+  "stream": "downstream",
+  "toxicity": 1.0,
+  "type": "latency",
+  "attributes": {
+    "latency": 2000,
+    "jitter": 500
+  }
+}
+```
+
+This tells Toxiproxy to add 2 seconds of latency (with 500ms of random variation) to every response from the database. Your tests run against this impaired network, and your code either handles it gracefully or it crashes.
 
 If you only test against a healthy network, you are testing a fiction. The agent's code will work in the sandbox and fail in production. Synthetic impairment closes this gap by making the sandbox as hostile as reality.
 
 ### Reproducible Environments
 
-> **For junior engineers:** Implement this today, at least at the level of pinned dependencies (`requirements.txt` with exact versions, `package-lock.json`). Nix is the gold standard for teams that need byte-level reproducibility.
+> **Practical note:** Implement this today, at least at the level of pinned dependencies (`requirements.txt` with exact versions like `requests==2.31.0`, not `requests>=2.0`; `package-lock.json` for Node). Nix is the gold standard for teams that need byte-level reproducibility.
 
 "It works on my machine" is the oldest joke in software engineering. It is also the most expensive. When the agent's sandbox has slightly different library versions, system packages, or environment variables than production, code that passes every test in development can fail silently in deployment.
 
 Tools like Nix solve this by making environments reproducible down to the cryptographic hash. Every dependency — every library, every system package, every configuration file — is specified exactly. The environment in the sandbox is byte-for-byte identical to the environment in production. If it works in one, it works in the other.
 
 This eliminates an entire category of bugs: the ones caused by environmental drift. The agent cannot accidentally depend on a library version that exists in development but not production, because the two environments are the same environment.
+
+> **Key takeaway:** Standard tests are not enough. Mutation testing proves your tests are real. Fuzzing finds the edge cases no human would write. Formal verification proves correctness for systems that must never fail. Network impairment proves your code survives the real world. Start with mutation testing — it is the highest return on investment.
 
 ---
 
@@ -502,7 +651,7 @@ Not because it is malicious. Because it is literal. An agent that has access to 
 
 ### Prompt Injection
 
-> **For junior engineers:** Understand this thoroughly. Prompt injection is the most common attack vector against agentic systems, and it can happen through code you did not write.
+> **Practical note:** Understand this thoroughly. Prompt injection is the most common attack vector against agentic systems, and it can happen through code you did not write. This is not a theoretical risk — it has been exploited in production systems already.
 
 Prompt injection is the agentic equivalent of SQL injection. In SQL injection, an attacker crafts input that the database interprets as a command. In prompt injection, an attacker crafts input that the *agent* interprets as an instruction.
 
@@ -531,35 +680,61 @@ This is not theoretical. It has happened in production systems. The mitigations 
 
 ### Write-Once Storage
 
-> **For junior engineers:** Understand this concept. You will implement WORM storage when working with production data that must survive accidental or malicious deletion attempts.
+> **Practical note:** This is a concept to understand now. WORM storage is used for production data that must survive accidental or malicious deletion attempts — financial records, audit logs, compliance data. When you are responsible for data that cannot be lost, this is your safety net.
 
-Production data should be stored on write-once, read-many (WORM) storage. This is storage configured so that data can be written but never deleted or modified for a defined retention period. S3 Object Lock, immutable filesystem flags, and hardware-level write protection all achieve this.
+Production data should be stored on write-once, read-many (WORM) storage. This is storage configured so that data can be written but never deleted or modified for a defined retention period. S3 Object Lock (an Amazon Web Services feature that makes stored objects immutable for a specified period), immutable filesystem flags, and hardware-level write protection all achieve this.
 
 If an agent hallucinates and runs `DROP DATABASE` during a test migration, the database engine will attempt the operation, and the storage layer will refuse it. The data survives not because the agent was careful, but because the storage was immutable.
 
 ### Software Data Diodes
 
-> **For junior engineers:** Understand this concept. You will encounter data diodes when working in high-security environments. The principle — one-way data flow with a human checkpoint — applies at every security level.
+> **Practical note:** This is a concept to understand now. Data diodes appear in high-security environments, but the principle — one-way data flow with a human checkpoint — applies at every security level, even in simple code review workflows.
 
-In high-security contexts, the agent's sandbox should be air-gapped from external systems. It cannot push code to GitHub. It cannot deploy to production. It cannot send emails or Slack messages.
+In high-security contexts, the agent's sandbox should be air-gapped — completely disconnected from external networks, with no ability to send or receive data over the internet. It cannot push code to GitHub. It cannot deploy to production. It cannot send emails or Slack messages.
 
 Instead, the agent produces artefacts — diff files, deployment plans, configuration changes — and drops them into a designated output directory. A separate, human-controlled process picks up these artefacts, reviews them, cryptographically signs them, and pushes them to their destination.
 
-This is a software data diode: data flows out of the sandbox in one direction, through a controlled checkpoint. The agent cannot exfiltrate data, push unreviewed code, or trigger deployments. It can propose. Humans dispose.
+Think of a postal slot in a door. You can push letters out, but you cannot reach back in. A data diode is the digital equivalent:
+
+```
+  +-------------+       +------------+       +-------------+
+  |   AGENT     |       |   OUTPUT   |       |  HUMAN      |
+  |   SANDBOX   | ----> |   FOLDER   | ----> |  REVIEWER   | ----> Production
+  |             |       |  (one-way) |       |             |
+  | No outbound |       +------------+       +-------------+
+  | access      |
+  +-------------+
+```
+
+The agent cannot exfiltrate data, push unreviewed code, or trigger deployments. It can propose. Humans dispose.
 
 ### Dynamic Taint Analysis
 
-> **For junior engineers:** Understand this concept. You will use taint analysis when working with systems that handle sensitive user data — PII, financial records, health information.
+> **Practical note:** This is a concept to understand now. Taint analysis is used for systems that handle sensitive user data — PII (personally identifiable information), financial records, health information. When building systems that process passwords, social security numbers, or credit card data, this is how you ensure that data never leaks where it should not go.
 
 Sensitive data — passwords, tokens, personally identifiable information — should be tracked through the agent's code at runtime. Dynamic taint analysis tools mark this data as "tainted" when it enters the system and follow it through every transformation, assignment, and function call.
 
-If tainted data reaches a dangerous sink — a log statement, an unencrypted network socket, a public API response — the runtime catches the flow and crashes the program. The agent's code cannot accidentally log a password or return a social security number in an API response, because the taint tracker will intercept it before the data leaves the process.
+Imagine putting a harmless but visible dye into a water pipe. You can then watch exactly where that water flows — every tap, every drain. If the dyed water shows up somewhere it should not, you know you have a leak. Taint analysis does this with sensitive data.
+
+If tainted data reaches a dangerous sink — a place where data leaves the system, such as a log statement, an unencrypted network socket, or a public API response — the runtime catches the flow and crashes the program. The agent's code cannot accidentally log a password or return a social security number in an API response, because the taint tracker will intercept it before the data leaves the process.
 
 ### Secrets Management
 
-> **For junior engineers:** Implement this today. Never hardcode credentials. Never put them in `.env` files committed to version control. Use a secrets manager from day one.
+> **Practical note:** Implement this today. Never hardcode credentials. Never put them in `.env` files committed to version control. Use a secrets manager from day one.
 
-Never give the agent real credentials. Use tools like HashiCorp Vault or Mozilla SOPS to inject short-lived, scoped credentials into the agent's environment. The credentials should:
+Never give the agent real credentials. Use tools like HashiCorp Vault or Mozilla SOPS (Secrets OPerationS — a tool that encrypts secret files so they can be safely stored in version control) to inject short-lived, scoped credentials into the agent's environment.
+
+A SOPS-encrypted secrets file looks like this:
+
+```yaml
+# secrets.yaml — encrypted with SOPS, safe to commit to git
+database:
+    password: ENC[AES256_GCM,data:Tr3o...encrypted...==,iv:8x2p...]
+api:
+    key: ENC[AES256_GCM,data:Kx9m...encrypted...==,iv:3n7q...]
+```
+
+The encrypted values are decrypted at runtime, only in memory, only for the duration of the task. The credentials should:
 
 - Expire quickly (minutes, not hours).
 - Have minimal permissions (read-only where possible).
@@ -576,6 +751,8 @@ The agent generates a deployment plan and starts a countdown — two hours, say.
 
 This is the dead man's switch: the system defaults to *not deploying*, and requires active human intervention to proceed. It is the final safeguard, and it is non-negotiable.
 
+> **Key takeaway:** Assume the agent will be compromised. Design every layer so that a compromised agent cannot cause irreversible damage. Short-lived credentials, one-way data flow, write-once storage, and a human dead man's switch — together, these ensure that the worst-case scenario is still survivable.
+
 ---
 
 ## X. Cognitive Routing and Economics
@@ -585,6 +762,44 @@ This is the dead man's switch: the system defaults to *not deploying*, and requi
 Not all AI models are equal. Some are large, slow, and good at reasoning. Others are small, fast, and good at execution. Using a single model for everything is like using a single tool for every job on a construction site. It works, but poorly.
 
 A well-designed agentic system uses a **multi-model roster**:
+
+```
+                    +------------------+
+                    |   ORCHESTRATOR   |
+                    |  (heavyweight    |
+                    |   reasoning      |
+                    |   model)         |
+                    +--------+---------+
+                             |
+                   Plans architecture,
+                   decomposes problems,
+                   reviews output
+                             |
+                    +--------v---------+
+                    |    EXECUTOR      |
+                    |  (fast, local    |
+                    |   code-gen       |
+                    |   model)         |
+                    +--------+---------+
+                             |
+                   Writes functions,
+                   runs tests,
+                   iterates on failures
+                             |
+                    +--------v---------+
+                    |   CODE OUTPUT    |
+                    +--------+---------+
+                             |
+                             v
+                    Orchestrator reviews
+                    (N-version check)
+                             |
+                    +--------v---------+
+                    |  PASS? ----> Ship|
+                    |  FAIL? ----> Back|
+                    |           to Executor
+                    +------------------+
+```
 
 **The Orchestrator** is a heavyweight model — something with strong reasoning capabilities. It plans architecture, designs schemas, decomposes problems into tasks, and reviews the output of other models. It is the senior architect. It thinks slowly and carefully.
 
@@ -596,13 +811,17 @@ The separation matters. The Orchestrator provides judgement. The Executor provid
 
 A model should never review its own work. This is not a suggestion; it is a principle borrowed from safety-critical systems engineering, where it is called N-version programming.
 
+Imagine asking two engineers to independently design a bridge. If they both arrive at the same design, you are more confident it is sound. If they disagree, one of them has made an error you need to find. That is N-version programming: independent implementations compared against each other.
+
 In aviation, flight control systems are implemented by separate teams working independently. The outputs are compared. If they disagree, the system flags an error rather than trusting one implementation.
 
 Apply the same principle to agentic code. The Executor writes the code. The Orchestrator reviews it. If they agree, the code proceeds. If they disagree, the code is sent back for revision. This catches a class of errors that self-review misses: the blind spots, the assumptions, the patterns that a single model takes for granted.
 
 ### Semantic Entropy Gating
 
-Models do not know when they are guessing. Or rather, they do — but they do not tell you. Under the hood, a model assigns probabilities to each token it generates. When it is confident, the probabilities are concentrated on a few tokens. When it is uncertain, the probabilities are spread across many tokens. This uncertainty can be measured using Shannon entropy.
+Models do not know when they are guessing. Or rather, they do — but they do not tell you. Under the hood, a model assigns probabilities to each token it generates. When it is confident, the probabilities are concentrated on a few tokens. When it is uncertain, the probabilities are spread across many tokens.
+
+This uncertainty can be measured using Shannon entropy — a mathematical measure of unpredictability. High entropy means the model is uncertain; low entropy means it is confident.
 
 Semantic entropy gating monitors this entropy during code generation. If the model's internal uncertainty spikes — if it is, in effect, stuttering — the system flags the output as potentially unreliable. The task is aborted or escalated before the uncertain code is saved.
 
@@ -612,7 +831,7 @@ This is not a perfect detector. It will flag some correct code as uncertain and 
 
 Working with AI models costs money, and the costs are not always obvious.
 
-Every token in the context window is billed — both the tokens you send (the prompt, the included files, the conversation history) and the tokens the model generates (the response). A conversation that accumulates many messages grows more expensive with each turn, because every turn re-sends the entire history.
+Every token in the context window is billed — both the tokens you send (the prompt, the included files, the conversation history) and the tokens the model generates (the response). A token is roughly three-quarters of a word. A conversation that accumulates many messages grows more expensive with each turn, because every turn re-sends the entire history.
 
 This creates practical imperatives:
 
@@ -634,6 +853,8 @@ Feed the agent the files it needs to modify, the tests it needs to pass, and the
 
 The agent's output quality is a function of its input quality. A focused context produces focused code. A bloated context produces bloated code — or worse, code that confuses information from one part of the context with requirements from another.
 
+> **Key takeaway:** Use the right model for the right job. Never let a model review its own work. Monitor the model's confidence. And treat every token in the context window as expensive real estate — because it is.
+
 ---
 
 ## XI. Telemetry and Memory
@@ -646,11 +867,11 @@ This is not a limitation you can prompt away. It is architectural. You must buil
 
 ### AST-Aware Diffing
 
-When an agent needs to understand what changed in a codebase — what was added, removed, or modified — the traditional tool is `git diff`. A diff shows lines added and removed. It is a textual representation of change.
+When an agent needs to understand what changed in a codebase, the traditional tool is `git diff`. A diff shows lines added and removed. It is a textual representation of change.
 
 For humans, this works well. For agents, it is a source of confusion. A diff that shows 50 lines removed and 50 lines added might represent a simple rename, a reformatting, or a complete rewrite. A human can tell the difference at a glance. An agent often cannot.
 
-AST-aware diffing tools (such as `difftastic`) solve this by comparing the *structure* of the code, not just the text. Instead of "these 50 lines changed," the agent sees "an `if` statement was added to this function" or "this function was renamed." The semantic meaning of the change is preserved, and the agent is far less likely to hallucinate about what happened.
+AST-aware diffing tools (such as `difftastic`) solve this by comparing the *structure* of the code, not just the text. AST stands for Abstract Syntax Tree — a representation of code as a tree of logical structures (functions, loops, conditionals) rather than a sequence of text lines. Instead of "these 50 lines changed," the agent sees "an `if` statement was added to this function" or "this function was renamed." The semantic meaning of the change is preserved, and the agent is far less likely to hallucinate about what happened.
 
 ### RAG-Augmented Error Feedback
 
@@ -659,6 +880,8 @@ When a test fails, the agent receives an error trace. In a naive setup, that is 
 Retrieval-Augmented Generation (RAG) changes this. When an error occurs, the system searches a database of historical errors and fixes. If a similar error was encountered before, the agent receives not just the current error trace but also the context: "Three weeks ago, a similar error in this project was caused by a misconfigured proxy. The fix was to update the TLS settings in `config.yaml`."
 
 This is institutional memory. It transforms the agent from a stateless tool into something that accumulates knowledge over time — not in its weights, but in its context. Each session builds on the last. Mistakes are not repeated. Fixes are reused.
+
+> **Key takeaway:** Agents forget everything between sessions. Build memory for them: AST-aware diffs so they understand what changed, and RAG-augmented error feedback so they learn from past mistakes.
 
 ---
 
@@ -717,6 +940,8 @@ Before any agent-generated code is merged:
 11. The diff has been reviewed for unnecessary verbosity.
 
 If any item fails, the code does not merge. No exceptions.
+
+> **Key takeaway:** When the agent gets stuck, read the telemetry before touching the code. Intervene minimally. And review every line of agent output with the pre-merge checklist — agents have failure modes that humans do not.
 
 ---
 
@@ -895,6 +1120,8 @@ The agent produced roughly 50 lines of code. You produced roughly 200 words of s
 
 This is the model. The agent does the typing. You do the thinking. The thinking is harder, more valuable, and more interesting than the typing. That is the trade.
 
+> **Key takeaway:** The worked example shows the full cycle: read the code first, write a specific prompt, review across four passes (correctness, style, edge cases, dependencies), run mutation testing, run enforcement, and write a clear commit message. Every step is necessary. None can be skipped.
+
 ---
 
 ## XIV. The Professional Habits
@@ -942,6 +1169,8 @@ How do you know when you have reached that point? When:
 - You can explain every line.
 
 Ship it. Monitor it. Fix what breaks. This is engineering.
+
+> **Key takeaway:** Commits are communication, not save points. Documentation should be terse and directive. CI must match local enforcement exactly. And ship when the checklist is green — perfection is the enemy of production.
 
 ---
 
