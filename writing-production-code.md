@@ -247,6 +247,8 @@ Before accepting any agent-suggested dependency, ask three questions:
 
 3. **Is the library worth the weight?** A 50MB dependency to save three lines of code is not a trade-off. A well-maintained library that solves a genuinely hard problem (cryptography, date arithmetic across time zones, complex SQL generation) is worth its weight.
 
+4. **Has the dependency been verified against typosquatting and supply-chain risks?** Attackers publish packages with names that differ by one character from popular libraries (e.g., `requuests` rather than `requests`). An agent can suggest a typosquatted package. Maintain an SBOM (Software Bill of Materials) for every project and scan it regularly for CVEs and unapproved dependencies.
+
 Instruct the agent explicitly: "Use only libraries already present in `requirements.txt`" or "Do not add new dependencies." If the agent insists a new library is necessary, make it justify the choice, and verify the justification.
 
 ### Agentic Debt
@@ -1070,6 +1072,8 @@ Common agent failure modes:
 
 - **Missing edge cases.** The agent handles the common case and ignores the uncommon ones. What happens when the input is empty? When the network times out? When the file is larger than memory? When two requests arrive simultaneously? You must think of these; the agent will not.
 
+- **Behavioural vulnerabilities.** The code works on the happy path but fails under adversarial conditions: a permission check only runs on one code path, a workflow assumes a previous step always happened, an API trusts client-provided state over server-derived values, or a retry mechanism replays sensitive actions without revalidation. Review by mentally executing the code as an attacker would.
+
 - **Copy-paste patterns.** The agent will duplicate code rather than abstract it. If you see the same logic in three places, extract it into a function. The agent will not do this on its own unless prompted.
 
 - **Silent failures.** The agent will catch exceptions and do nothing with them. It will return default values when it should raise errors. It will log at debug level when it should log at error level. Every error path must be examined.
@@ -1083,6 +1087,8 @@ This is the ownership paradox: code no human can explain is not an asset. It is 
 The mitigation is not to read every line of every agent output: that is impractical at scale. It is to ensure that every significant architectural decision is documented, every module has a designated human owner, and every pre-merge checklist includes the question: "Could I explain this module to a colleague without opening the file?" If the answer is no, the agent has not done its job. It has merely produced output.
 
 The agent does not reduce the need for human understanding. It shifts it: from line-level recall to architectural comprehension. That is a harder skill, not an easier one.
+
+**The rule: every piece of agent-generated code must have a clear human owner. Someone who can explain what it does, why it exists, and how to fix it. Code without an owner is not an asset. It is deferred liability.**
 
 ### The Pre-Merge Checklist
 
@@ -1419,6 +1425,8 @@ The engineer who reads the agent's code, understands it, modifies it, and ships 
 
 **RAG (Retrieval-Augmented Generation)** — A technique that retrieves relevant historical context (past errors, fixes, decisions) from a database and injects it into the agent's context window. *(Section XI)*
 
+**SBOM (Software Bill of Materials)** — A formal inventory of all software components, libraries, and dependencies in a project, used to track supply-chain risks and CVEs. *(Section III)*
+
 **Semantic entropy** — A mathematical measure of a model's uncertainty in its output, derived from the probability distribution of generated tokens. *(Section X)*
 
 **SOPS (Secrets OPerationS)** — A tool from Mozilla that encrypts secret files so they can be safely stored in version control, decrypted only at runtime in memory. *(Section IX)*
@@ -1603,6 +1611,33 @@ Write tests for `{file_path}` in `{test_file_path}`.
 **Verification:**
 - Run `{test_command}` and confirm all tests pass.
 - Run mutation testing and confirm score > 80%.
+```
+
+### Template 5: Secure Code Generation
+
+```text
+Generate {code description} at `{file_path}` that meets these security
+requirements:
+
+**Functional goal:** {one-sentence description}
+**Input/Output:** {types and validation requirements}
+
+**Security constraints:**
+- All database queries use parameterised statements (no string concatenation).
+- Passwords are hashed with {bcrypt/argon2/scrypt}, never stored in plaintext.
+- All user input is validated at the server, not just the client.
+- File uploads validate type, scan for malware, and enforce size limits.
+- API endpoints have rate limiting and authentication where appropriate.
+- Infrastructure templates (Terraform, CloudFormation, K8s) use least-privilege
+  defaults: no wildcard identity and access management (IAM) permissions, no public containers, no root users.
+- Never hardcode credentials, API keys, tokens, or secrets.
+- All cryptographic operations use approved algorithms (not MD5, SHA1, or RC4).
+
+**Verification:**
+- Include tests for: {happy path}, {auth bypass attempts}, {invalid input},
+  {boundary conditions}.
+- Run `{security_scanner_command}` and confirm zero critical findings.
+- Run `{lint_command}` and confirm all checks pass.
 ```
 
 ### Template 4: Code Review Request
