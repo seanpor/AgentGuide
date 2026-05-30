@@ -63,6 +63,10 @@ Quick-reference documents for daily use with the guide:
 | `writing-production-code.md#appendix-c-prompt-templates` | Reusable prompt templates for common tasks |
 | `writing-production-code.md#appendix-d-suggested-reading-path` | Staged learning plan for junior engineers |
 
+## Language
+
+All documentation in this repository uses UK English spelling and grammar (e.g., *behaviour*, *standardise*, *optimise*, *colour*). Run `make lint-spell` to verify.
+
 ## Adding Technical Terms
 
 When you add a new technical term to the guide (e.g., "blockchain", "microservice"), add it to `.hunspell_en_GB`:

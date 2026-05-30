@@ -4,10 +4,6 @@
 
 ---
 
-**Language note:** This document is written in UK English. All spelling, grammar, and terminology should follow British conventions (e.g., *behaviour*, *standardise*, *optimise*, *colour*). Run `make lint` to check formatting and spelling.
-
----
-
 ## Table of Contents
 
 - [I. Introduction](#i-introduction)
